@@ -47,7 +47,7 @@ PLIST_BUDDY := /usr/libexec/PlistBuddy
 
 .DEFAULT_GOAL := help
 
-.PHONY: help format lint localize build test icon app sign package notarize run demo dev reset-permissions reset-data clean release
+.PHONY: help format lint localize build test icon app sign package notarize run demo demo-missed dev reset-permissions reset-data clean release
 
 help: ## Show this help.
 	@printf '%s\n' "CalendarShouter $(VERSION) — available targets:"
@@ -127,6 +127,9 @@ run: sign ## Build, bundle and launch the app.
 
 demo: sign ## Launch the app with a synthetic reminder, to inspect the panel.
 	open -n "$(APP_BUNDLE)" --args --demo-reminder
+
+demo-missed: sign ## Launch the app with a synthetic missed-reminder backlog, to inspect the summary panel.
+	open -n "$(APP_BUNDLE)" --args --demo-missed-reminders
 
 dev: localize ## Run without bundling. Calendar access and the login item do not work.
 	$(SWIFT) run -c $(CONFIG)

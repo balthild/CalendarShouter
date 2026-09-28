@@ -18,6 +18,7 @@ struct SettingsStoreTests {
 		let store = SettingsStore(defaults: makeDefaults())
 
 		#expect(store.showMenuBarIcon == true)
+		#expect(store.showMissedReminders == true)
 		#expect(store.enabledCalendarIDs.isEmpty)
 		#expect(store.soundName == SettingsStore.defaultSoundName)
 	}
@@ -39,11 +40,13 @@ struct SettingsStoreTests {
 
 		let first = SettingsStore(defaults: defaults)
 		first.showMenuBarIcon = false
+		first.showMissedReminders = false
 		first.soundName = "Ping"
 		first.setReminderEnabled(true, forCalendarID: "work")
 
 		let second = SettingsStore(defaults: defaults)
 		#expect(second.showMenuBarIcon == false)
+		#expect(second.showMissedReminders == false)
 		#expect(second.soundName == "Ping")
 		#expect(second.enabledCalendarIDs == ["work"])
 	}

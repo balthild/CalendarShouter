@@ -29,7 +29,7 @@ struct ReminderView: View {
 					.foregroundStyle(.secondary)
 			}
 
-			Text(displayTitle)
+			Text(fire.event.displayTitle)
 				.font(.title2.weight(.semibold))
 				.fixedSize(horizontal: false, vertical: true)
 		}
@@ -42,7 +42,7 @@ struct ReminderView: View {
 	@ViewBuilder
 	private var details: some View {
 		VStack(alignment: .leading, spacing: 10) {
-			detailRow(systemImage: "clock", text: timeText)
+			detailRow(systemImage: "clock", text: fire.event.reminderTimeText)
 
 			if let location = fire.event.location {
 				detailRow(systemImage: "mappin.and.ellipse", text: location)
@@ -111,18 +111,21 @@ struct ReminderView: View {
 		.padding(.horizontal, 20)
 		.padding(.vertical, 14)
 	}
+}
 
-	private var displayTitle: String {
-		fire.event.title.isEmpty ? String(localizable: .untitledEvent) : fire.event.title
+// MARK: - Shared formatting
+
+extension ReminderEvent {
+	/// The event's title, or a placeholder when it has none.
+	var displayTitle: String {
+		title.isEmpty ? String(localizable: .untitledEvent) : title
 	}
 
-	private var timeText: String {
-		let event = fire.event
-		guard !event.isAllDay else { return String(localizable: .allDay) }
-		let start = event.startDate.formatted(
-			.dateTime.month(.abbreviated).day().hour().minute()
-		)
-		let end = event.endDate.formatted(.dateTime.hour().minute())
+	/// The event's time range, as shown on a reminder.
+	var reminderTimeText: String {
+		guard !isAllDay else { return String(localizable: .allDay) }
+		let start = startDate.formatted(.dateTime.month(.abbreviated).day().hour().minute())
+		let end = endDate.formatted(.dateTime.hour().minute())
 		return "\(start) – \(end)"
 	}
 }

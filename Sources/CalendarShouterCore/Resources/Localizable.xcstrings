@@ -115,6 +115,13 @@
 				"zh-Hans": { "stringUnit": { "state": "translated", "value": "忽略" } }
 			}
 		},
+		"ignoreAll": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": { "stringUnit": { "state": "translated", "value": "Ignore All" } },
+				"zh-Hans": { "stringUnit": { "state": "translated", "value": "全部忽略" } }
+			}
+		},
 		"launchAtLogin": {
 			"extractionState": "manual",
 			"localizations": {
@@ -205,6 +212,13 @@
 				"zh-Hans": { "stringUnit": { "state": "translated", "value": "设置…" } }
 			}
 		},
+		"missedReminders": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": { "stringUnit": { "state": "translated", "value": "Missed reminders" } },
+				"zh-Hans": { "stringUnit": { "state": "translated", "value": "错过的提醒" } }
+			}
+		},
 		"noCalendars": {
 			"extractionState": "manual",
 			"localizations": {
@@ -289,11 +303,32 @@
 				"zh-Hans": { "stringUnit": { "state": "translated", "value": "显示菜单栏图标" } }
 			}
 		},
+		"showMissedReminders": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": {
+					"stringUnit": {
+						"state": "translated",
+						"value": "Show reminders missed while asleep"
+					}
+				},
+				"zh-Hans": {
+					"stringUnit": { "state": "translated", "value": "显示睡眠期间错过的提醒" }
+				}
+			}
+		},
 		"snooze": {
 			"extractionState": "manual",
 			"localizations": {
 				"en": { "stringUnit": { "state": "translated", "value": "Snooze" } },
 				"zh-Hans": { "stringUnit": { "state": "translated", "value": "稍后提醒" } }
+			}
+		},
+		"snoozeAll": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": { "stringUnit": { "state": "translated", "value": "Snooze All" } },
+				"zh-Hans": { "stringUnit": { "state": "translated", "value": "全部稍后提醒" } }
 			}
 		},
 		"tabCalendars": {

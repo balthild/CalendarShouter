@@ -31,6 +31,8 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
 		// Development aid: shows a reminder immediately so the panel can be checked.
 		if CommandLine.arguments.contains("--demo-reminder") {
 			coordinator.presentDemoReminder()
+		} else if CommandLine.arguments.contains("--demo-missed-reminders") {
+			coordinator.presentDemoMissedReminders()
 		}
 	}
 

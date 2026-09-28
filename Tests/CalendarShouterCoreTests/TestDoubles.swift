@@ -51,6 +51,12 @@ final class FakeClock: Clock {
 		}
 		now = target
 	}
+
+	/// Moves the clock forward without running any callback, modelling a machine that
+	/// was asleep or an app that was closed: a scheduled timer does not fire.
+	func jump(by interval: TimeInterval) {
+		now = now.addingTimeInterval(interval)
+	}
 }
 
 /// Calendar service backed by in-memory events.

@@ -17,8 +17,17 @@ public final class ReminderWindowController {
 	public var onIgnore: (@MainActor (ReminderFire) -> Void)?
 	/// Called when the user snoozes a reminder.
 	public var onSnooze: (@MainActor (ReminderFire, SnoozeOption) -> Void)?
+	/// Called when the user ignores a whole batch of missed reminders.
+	public var onIgnoreAll: (@MainActor ([ReminderFire]) -> Void)?
+	/// Called when the user snoozes a whole batch of missed reminders.
+	public var onSnoozeAll: (@MainActor ([ReminderFire], SnoozeOption) -> Void)?
 
 	private var panels: [String: ReminderPanel] = [:]
+
+	/// The fires of the missed-reminder summary, while it is on screen.
+	private var backlogFires: [ReminderFire] = []
+
+	private static let backlogKey = "missed-reminders"
 
 	public init() {}
 
@@ -32,15 +41,35 @@ public final class ReminderWindowController {
 		}
 	}
 
+	/// Shows a single panel summarising a batch of missed reminders.
+	public func presentBacklog(_ fires: [ReminderFire]) {
+		guard !fires.isEmpty, panels[Self.backlogKey] == nil else { return }
+		backlogFires = fires
+		let panel = makePanel(
+			content: MissedRemindersView(
+				fires: fires,
+				onIgnoreAll: { [weak self] in self?.ignoreAll() },
+				onSnoozeAll: { [weak self] option in self?.snoozeAll(by: option) }
+			)
+		)
+		panels[Self.backlogKey] = panel
+		position(panel, stackIndex: panels.count - 1)
+		fadeIn(panel)
+	}
+
 	// MARK: - Panel construction
 
 	private func makePanel(for fire: ReminderFire) -> ReminderPanel {
-		let content = ReminderView(
-			fire: fire,
-			onIgnore: { [weak self] in self?.ignore(fire) },
-			onSnooze: { [weak self] option in self?.snooze(fire, by: option) }
+		makePanel(
+			content: ReminderView(
+				fire: fire,
+				onIgnore: { [weak self] in self?.ignore(fire) },
+				onSnooze: { [weak self] option in self?.snooze(fire, by: option) }
+			)
 		)
+	}
 
+	private func makePanel(content: some View) -> ReminderPanel {
 		let panel = ReminderPanel(
 			contentRect: NSRect(x: 0, y: 0, width: Self.panelWidth, height: 200),
 			styleMask: [.borderless, .nonactivatingPanel],
@@ -144,6 +173,24 @@ public final class ReminderWindowController {
 	private func snooze(_ fire: ReminderFire, by option: SnoozeOption) {
 		close(panelFor: fire)
 		onSnooze?(fire, option)
+	}
+
+	private func ignoreAll() {
+		guard let fires = closeBacklog() else { return }
+		onIgnoreAll?(fires)
+	}
+
+	private func snoozeAll(by option: SnoozeOption) {
+		guard let fires = closeBacklog() else { return }
+		onSnoozeAll?(fires, option)
+	}
+
+	/// Closes the summary panel, returning the batch it held.
+	private func closeBacklog() -> [ReminderFire]? {
+		guard let panel = panels.removeValue(forKey: Self.backlogKey) else { return nil }
+		panel.close()
+		defer { backlogFires = [] }
+		return backlogFires
 	}
 
 	private func close(panelFor fire: ReminderFire) {

@@ -415,6 +415,9 @@ struct GeneralSettingsPane: View {
 				Toggle(isOn: $store.showMenuBarIcon) {
 					Text(localizable: .showMenuBarIcon)
 				}
+				Toggle(isOn: $store.showMissedReminders) {
+					Text(localizable: .showMissedReminders)
+				}
 				Toggle(isOn: launchAtLoginBinding) {
 					Text(localizable: .launchAtLogin)
 				}

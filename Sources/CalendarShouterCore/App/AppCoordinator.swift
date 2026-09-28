@@ -19,6 +19,7 @@ public final class AppCoordinator {
 	/// deinitializer can unregister them.
 	nonisolated(unsafe) private var systemObservers: [NSObjectProtocol] = []
 	private var rollingRefreshTimer: Timer?
+	private var soundRateLimiter = SoundRateLimiter()
 
 	private lazy var statusItemController = StatusItemController(
 		showSettings: { [weak self] in self?.showSettings() },
@@ -30,6 +31,12 @@ public final class AppCoordinator {
 		controller.onIgnore = { [weak self] fire in self?.scheduler.dismiss(fire) }
 		controller.onSnooze = { [weak self] fire, option in
 			self?.scheduler.snooze(fire, by: option)
+		}
+		controller.onIgnoreAll = { [weak self] fires in
+			for fire in fires { self?.scheduler.dismiss(fire) }
+		}
+		controller.onSnoozeAll = { [weak self] fires, option in
+			for fire in fires { self?.scheduler.snooze(fire, by: option) }
 		}
 		return controller
 	}()
@@ -124,6 +131,46 @@ public final class AppCoordinator {
 		}
 	}
 
+	/// Presents a synthetic backlog of missed reminders.
+	///
+	/// Used by the `--demo-missed-reminders` launch argument so the summary panel can
+	/// be inspected without waiting for a real backlog.
+	public func presentDemoMissedReminders(after delay: TimeInterval = 1) {
+		let now = Date()
+		let colors: [RGBColor] = [
+			RGBColor(red: 0.35, green: 0.45, blue: 0.95),
+			RGBColor(red: 0.90, green: 0.35, blue: 0.35),
+			RGBColor(red: 0.30, green: 0.70, blue: 0.45),
+			RGBColor(red: 0.95, green: 0.65, blue: 0.20),
+			RGBColor(red: 0.60, green: 0.40, blue: 0.85),
+		]
+		let fires = colors.enumerated().map { index, color -> ReminderFire in
+			let start = now.addingTimeInterval(-Double(index + 1) * 3600)
+			let event = ReminderEvent(
+				id: "demo-missed-\(index)",
+				title: "\(String(localizable: .demoEventTitle)) \(index + 1)",
+				startDate: start,
+				endDate: start.addingTimeInterval(1800),
+				isAllDay: false,
+				location: nil,
+				notes: nil,
+				calendar: CalendarInfo(
+					id: "demo-calendar-\(index)",
+					title: "\(String(localizable: .demoCalendarTitle)) \(index + 1)",
+					color: color,
+					account: CalendarAccountRef(id: "demo-account", title: "iCloud", kind: .calDAV)
+				),
+				fireDates: [start]
+			)
+			return ReminderFire(event: event, fireDate: start, isSnooze: false, isLate: true)
+		}
+
+		Task { @MainActor [weak self] in
+			try? await Task.sleep(for: .seconds(delay))
+			self?.present(fires)
+		}
+	}
+
 	// MARK: - Settings
 
 	/// Reacts to preference changes.
@@ -133,6 +180,7 @@ public final class AppCoordinator {
 	private func observeSettings() {
 		withObservationTracking {
 			_ = settings.showMenuBarIcon
+			_ = settings.showMissedReminders
 			_ = settings.enabledCalendarIDs
 			_ = settings.soundName
 		} onChange: { [weak self] in
@@ -152,8 +200,20 @@ public final class AppCoordinator {
 
 	private func present(_ fires: [ReminderFire]) {
 		guard !fires.isEmpty else { return }
-		soundPlayer.play(soundName: settings.soundName)
-		reminderWindowController.present(fires)
+		if soundRateLimiter.shouldPlay(at: Date()) {
+			soundPlayer.play(soundName: settings.soundName)
+		}
+
+		let now = Date()
+		guard ReminderPresentation.isBacklog(fires, now: now) else {
+			reminderWindowController.present(fires)
+			return
+		}
+
+		let missed = ReminderPresentation.endedMissed(fires, now: now)
+		let missedIDs = Set(missed.map(\.id))
+		reminderWindowController.present(fires.filter { !missedIDs.contains($0.id) })
+		reminderWindowController.presentBacklog(missed)
 	}
 
 	// MARK: - Login item

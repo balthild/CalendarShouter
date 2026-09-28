@@ -12,12 +12,22 @@ public final class SettingsStore {
 		static let showMenuBarIcon = "showMenuBarIcon"
 		static let enabledCalendarIDs = "enabledCalendarIDs"
 		static let soundName = "soundName"
+		static let showMissedReminders = "showMissedReminders"
 	}
 
 	private let defaults: UserDefaults
 
 	public var showMenuBarIcon: Bool {
 		didSet { defaults.set(showMenuBarIcon, forKey: Key.showMenuBarIcon) }
+	}
+
+	/// Whether reminders that came due while the app was asleep or closed are shown
+	/// once it is watching again.
+	///
+	/// On by default: a reminder that arrives late is still worth seeing, and this
+	/// app is meant for people who need to be told what they have missed.
+	public var showMissedReminders: Bool {
+		didSet { defaults.set(showMissedReminders, forKey: Key.showMissedReminders) }
 	}
 
 	/// Calendars the user has switched on.
@@ -38,6 +48,7 @@ public final class SettingsStore {
 	public init(defaults: UserDefaults = .standard) {
 		self.defaults = defaults
 		self.showMenuBarIcon = defaults.object(forKey: Key.showMenuBarIcon) as? Bool ?? true
+		self.showMissedReminders = defaults.object(forKey: Key.showMissedReminders) as? Bool ?? true
 		self.enabledCalendarIDs = Set(defaults.stringArray(forKey: Key.enabledCalendarIDs) ?? [])
 		self.soundName = defaults.string(forKey: Key.soundName) ?? Self.defaultSoundName
 	}

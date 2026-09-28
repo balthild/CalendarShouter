@@ -1,7 +1,7 @@
 import Foundation
 
 /// A color expressed in the sRGB color space, so models stay free of AppKit types.
-public struct RGBColor: Sendable, Equatable, Hashable {
+public struct RGBColor: Sendable, Equatable, Hashable, Codable {
 	public let red: Double
 	public let green: Double
 	public let blue: Double
@@ -19,7 +19,7 @@ public struct RGBColor: Sendable, Equatable, Hashable {
 ///
 /// The raw values order the groups in the calendar list, local accounts first and the
 /// system-supplied collections last.
-public enum CalendarAccountKind: Int, Sendable, Comparable {
+public enum CalendarAccountKind: Int, Sendable, Comparable, Codable {
 	case local = 0
 	case exchange = 1
 	case calDAV = 2
@@ -32,7 +32,7 @@ public enum CalendarAccountKind: Int, Sendable, Comparable {
 }
 
 /// Which account a calendar belongs to.
-public struct CalendarAccountRef: Sendable, Equatable, Hashable {
+public struct CalendarAccountRef: Sendable, Equatable, Hashable, Codable {
 	public let id: String
 	public let title: String
 	public let kind: CalendarAccountKind
@@ -45,7 +45,7 @@ public struct CalendarAccountRef: Sendable, Equatable, Hashable {
 }
 
 /// A calendar the app can read events from.
-public struct CalendarInfo: Sendable, Identifiable, Equatable, Hashable {
+public struct CalendarInfo: Sendable, Identifiable, Equatable, Hashable, Codable {
 	public let id: String
 	public let title: String
 	public let color: RGBColor
@@ -101,7 +101,7 @@ public struct CalendarAccount: Sendable, Identifiable, Equatable {
 }
 
 /// An event that carries at least one time-based alarm.
-public struct ReminderEvent: Sendable, Identifiable, Equatable {
+public struct ReminderEvent: Sendable, Identifiable, Equatable, Codable {
 	public let id: String
 	public let title: String
 	public let startDate: Date
@@ -141,6 +141,8 @@ public struct ReminderFire: Sendable, Identifiable, Equatable {
 	public let fireDate: Date
 	/// Whether this reminder was created by the user's "snooze" action.
 	public let isSnooze: Bool
+	/// Whether the reminder became due while the app was not watching, so it was missed.
+	public let isLate: Bool
 
 	/// A stable identity that is unique per event *and* per fire time, so that
 	/// snoozing an event produces a distinct reminder from the original.
@@ -148,9 +150,10 @@ public struct ReminderFire: Sendable, Identifiable, Equatable {
 		"\(event.id)@\(Int(fireDate.timeIntervalSince1970))"
 	}
 
-	public init(event: ReminderEvent, fireDate: Date, isSnooze: Bool) {
+	public init(event: ReminderEvent, fireDate: Date, isSnooze: Bool, isLate: Bool = false) {
 		self.event = event
 		self.fireDate = fireDate
 		self.isSnooze = isSnooze
+		self.isLate = isLate
 	}
 }
