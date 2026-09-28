@@ -1,0 +1,10 @@
+/* Application name shown in the menu bar, Dock and Finder. */
+CFBundleDisplayName = "CalendarShouter";
+CFBundleName = "CalendarShouter";
+
+/* Purpose strings for the calendar access prompt. */
+NSCalendarsFullAccessUsageDescription = "CalendarShouter reads your events to show a reminder when an event's own alert time arrives.";
+NSCalendarsUsageDescription = "CalendarShouter reads your events to show a reminder when an event's own alert time arrives.";
+
+/* Purpose string for the Automation prompt raised when the login item is added. */
+NSAppleEventsUsageDescription = "CalendarShouter adds itself to your login items when you turn on “Launch at login”.";

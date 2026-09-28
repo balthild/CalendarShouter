@@ -1,0 +1,10 @@
+/* Application name shown in the menu bar, Dock and Finder. */
+CFBundleDisplayName = "日历提醒";
+CFBundleName = "日历提醒";
+
+/* Purpose strings for the calendar access prompt. */
+NSCalendarsFullAccessUsageDescription = "日历提醒需要读取你的日程，以便在日程自身的提醒时间到达时通知你。";
+NSCalendarsUsageDescription = "日历提醒需要读取你的日程，以便在日程自身的提醒时间到达时通知你。";
+
+/* Purpose string for the Automation prompt raised when the login item is added. */
+NSAppleEventsUsageDescription = "日历提醒在你开启“登录时启动”时，需要控制“系统事件”以把自身加入登录项。";

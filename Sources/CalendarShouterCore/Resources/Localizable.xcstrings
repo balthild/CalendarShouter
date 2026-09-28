@@ -1,0 +1,343 @@
+{
+	"sourceLanguage": "en",
+	"strings": {
+		"allDay": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": { "stringUnit": { "state": "translated", "value": "All day" } },
+				"zh-Hans": { "stringUnit": { "state": "translated", "value": "全天" } }
+			}
+		},
+		"calendarAccessDenied": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": {
+					"stringUnit": {
+						"state": "translated",
+						"value": "Calendar access was denied. Enable it in System Settings."
+					}
+				},
+				"zh-Hans": {
+					"stringUnit": {
+						"state": "translated",
+						"value": "日历访问已被拒绝，请在系统设置中开启。"
+					}
+				}
+			}
+		},
+		"calendarAccessRequired": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": {
+					"stringUnit": {
+						"state": "translated",
+						"value": "Calendar access is required to show reminders."
+					}
+				},
+				"zh-Hans": {
+					"stringUnit": {
+						"state": "translated",
+						"value": "显示提醒需要访问日历。"
+					}
+				}
+			}
+		},
+		"demoCalendarTitle": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": { "stringUnit": { "state": "translated", "value": "Demo calendar" } },
+				"zh-Hans": { "stringUnit": { "state": "translated", "value": "演示日历" } }
+			}
+		},
+		"demoEventLocation": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": { "stringUnit": { "state": "translated", "value": "Conference Room" } },
+				"zh-Hans": { "stringUnit": { "state": "translated", "value": "会议室" } }
+			}
+		},
+		"demoEventNotes": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": {
+					"stringUnit": {
+						"state": "translated",
+						"value": "This is a demonstration reminder, shown on demand."
+					}
+				},
+				"zh-Hans": {
+					"stringUnit": {
+						"state": "translated",
+						"value": "这是一条按需显示的演示提醒。"
+					}
+				}
+			}
+		},
+		"demoEventTitle": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": { "stringUnit": { "state": "translated", "value": "Demo event" } },
+				"zh-Hans": { "stringUnit": { "state": "translated", "value": "演示事件" } }
+			}
+		},
+		"enableCalendars": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": { "stringUnit": { "state": "translated", "value": "Enable Calendars" } },
+				"zh-Hans": { "stringUnit": { "state": "translated", "value": "启用日历" } }
+			}
+		},
+		"fifteenMinutes": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": { "stringUnit": { "state": "translated", "value": "15 minutes" } },
+				"zh-Hans": { "stringUnit": { "state": "translated", "value": "15 分钟" } }
+			}
+		},
+		"fiveMinutes": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": { "stringUnit": { "state": "translated", "value": "5 minutes" } },
+				"zh-Hans": { "stringUnit": { "state": "translated", "value": "5 分钟" } }
+			}
+		},
+		"grantAccess": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": { "stringUnit": { "state": "translated", "value": "Grant Access…" } },
+				"zh-Hans": { "stringUnit": { "state": "translated", "value": "授予访问权限…" } }
+			}
+		},
+		"ignore": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": { "stringUnit": { "state": "translated", "value": "Ignore" } },
+				"zh-Hans": { "stringUnit": { "state": "translated", "value": "忽略" } }
+			}
+		},
+		"launchAtLogin": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": { "stringUnit": { "state": "translated", "value": "Launch at login" } },
+				"zh-Hans": { "stringUnit": { "state": "translated", "value": "登录时启动" } }
+			}
+		},
+		"location": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": { "stringUnit": { "state": "translated", "value": "Location" } },
+				"zh-Hans": { "stringUnit": { "state": "translated", "value": "地点" } }
+			}
+		},
+		"loginItemApprovalMessage": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": {
+					"stringUnit": {
+						"state": "translated",
+						"value": "CalendarShouter is set to launch at login, but macOS needs you to approve it in System Settings first."
+					}
+				},
+				"zh-Hans": {
+					"stringUnit": {
+						"state": "translated",
+						"value": "日历提醒已设为登录时启动，但需要你先在系统设置中批准。"
+					}
+				}
+			}
+		},
+		"loginItemApprovalTitle": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": { "stringUnit": { "state": "translated", "value": "Approve Login Item" } },
+				"zh-Hans": { "stringUnit": { "state": "translated", "value": "需要批准登录项" } }
+			}
+		},
+		"loginItemAutomationMessage": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": {
+					"stringUnit": {
+						"state": "translated",
+						"value": "CalendarShouter needs permission to control System Events before it can add itself to your login items. Grant it in System Settings → Privacy & Security → Automation."
+					}
+				},
+				"zh-Hans": {
+					"stringUnit": {
+						"state": "translated",
+						"value": "日历提醒需要获得控制“系统事件”的权限，才能把自己加入登录项。请在“系统设置 → 隐私与安全性 → 自动化”中允许。"
+					}
+				}
+			}
+		},
+		"loginItemAutomationTitle": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": { "stringUnit": { "state": "translated", "value": "Automation Permission Needed" } },
+				"zh-Hans": { "stringUnit": { "state": "translated", "value": "需要“自动化”权限" } }
+			}
+		},
+		"menuClose": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": { "stringUnit": { "state": "translated", "value": "Close" } },
+				"zh-Hans": { "stringUnit": { "state": "translated", "value": "关闭" } }
+			}
+		},
+		"menuFile": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": { "stringUnit": { "state": "translated", "value": "File" } },
+				"zh-Hans": { "stringUnit": { "state": "translated", "value": "文件" } }
+			}
+		},
+		"menuQuit": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": { "stringUnit": { "state": "translated", "value": "Quit CalendarShouter" } },
+				"zh-Hans": { "stringUnit": { "state": "translated", "value": "退出日历提醒" } }
+			}
+		},
+		"menuSettings": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": { "stringUnit": { "state": "translated", "value": "Settings…" } },
+				"zh-Hans": { "stringUnit": { "state": "translated", "value": "设置…" } }
+			}
+		},
+		"noCalendars": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": { "stringUnit": { "state": "translated", "value": "No calendars available" } },
+				"zh-Hans": { "stringUnit": { "state": "translated", "value": "没有可用的日历" } }
+			}
+		},
+		"noSound": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": { "stringUnit": { "state": "translated", "value": "No sound" } },
+				"zh-Hans": { "stringUnit": { "state": "translated", "value": "无声音" } }
+			}
+		},
+		"notNow": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": { "stringUnit": { "state": "translated", "value": "Not Now" } },
+				"zh-Hans": { "stringUnit": { "state": "translated", "value": "以后再说" } }
+			}
+		},
+		"notes": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": { "stringUnit": { "state": "translated", "value": "Notes" } },
+				"zh-Hans": { "stringUnit": { "state": "translated", "value": "备注" } }
+			}
+		},
+		"openLoginItemsSettings": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": {
+					"stringUnit": {
+						"state": "translated",
+						"value": "Open Login Items Settings"
+					}
+				},
+				"zh-Hans": {
+					"stringUnit": { "state": "translated", "value": "打开登录项设置" }
+				}
+			}
+		},
+		"openSystemSettings": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": { "stringUnit": { "state": "translated", "value": "Open System Settings" } },
+				"zh-Hans": { "stringUnit": { "state": "translated", "value": "打开系统设置" } }
+			}
+		},
+		"reminderSound": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": { "stringUnit": { "state": "translated", "value": "Reminder sound" } },
+				"zh-Hans": { "stringUnit": { "state": "translated", "value": "提醒声音" } }
+			}
+		},
+		"remindersOnlyForEnabledCalendars": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": {
+					"stringUnit": {
+						"state": "translated",
+						"value": "Reminders are only shown for the enabled calendars."
+					}
+				},
+				"zh-Hans": {
+					"stringUnit": { "state": "translated", "value": "仅对启用的日历显示提醒。" }
+				}
+			}
+		},
+		"settingsWindowTitle": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": { "stringUnit": { "state": "translated", "value": "Settings" } },
+				"zh-Hans": { "stringUnit": { "state": "translated", "value": "设置" } }
+			}
+		},
+		"showMenuBarIcon": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": { "stringUnit": { "state": "translated", "value": "Show menu bar icon" } },
+				"zh-Hans": { "stringUnit": { "state": "translated", "value": "显示菜单栏图标" } }
+			}
+		},
+		"snooze": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": { "stringUnit": { "state": "translated", "value": "Snooze" } },
+				"zh-Hans": { "stringUnit": { "state": "translated", "value": "稍后提醒" } }
+			}
+		},
+		"tabCalendars": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": { "stringUnit": { "state": "translated", "value": "Calendars" } },
+				"zh-Hans": { "stringUnit": { "state": "translated", "value": "日历" } }
+			}
+		},
+		"tabGeneral": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": { "stringUnit": { "state": "translated", "value": "General" } },
+				"zh-Hans": { "stringUnit": { "state": "translated", "value": "通用" } }
+			}
+		},
+		"tabSound": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": { "stringUnit": { "state": "translated", "value": "Sound" } },
+				"zh-Hans": { "stringUnit": { "state": "translated", "value": "声音" } }
+			}
+		},
+		"tenMinutes": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": { "stringUnit": { "state": "translated", "value": "10 minutes" } },
+				"zh-Hans": { "stringUnit": { "state": "translated", "value": "10 分钟" } }
+			}
+		},
+		"thirtyMinutes": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": { "stringUnit": { "state": "translated", "value": "30 minutes" } },
+				"zh-Hans": { "stringUnit": { "state": "translated", "value": "30 分钟" } }
+			}
+		},
+		"untitledEvent": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": { "stringUnit": { "state": "translated", "value": "Untitled event" } },
+				"zh-Hans": { "stringUnit": { "state": "translated", "value": "无标题事件" } }
+			}
+		}
+	},
+	"version": "1.0"
+}
