@@ -8,10 +8,11 @@
 #    compiles it, so a build without this ships an app showing raw keys.
 #
 # Always launch the bundled app with `make run` (or `open`): macOS only presents
-# the calendar permission alert to an app launched through LaunchServices, and
-# silently refuses the request when the executable is started directly.
-# Re-signing the bundle changes its code hash, so macOS forgets the permission
-# decision after every rebuild; `make reset-permissions` clears it deliberately.
+# the calendar and reminders permission alerts to an app launched through
+# LaunchServices, and silently refuses the request when the executable is started
+# directly. Re-signing the bundle changes its code hash, so macOS forgets the
+# permission decisions after every rebuild; `make reset-permissions` clears them
+# deliberately.
 
 SHELL := /bin/sh
 
@@ -134,14 +135,15 @@ demo-missed: sign ## Launch the app with a synthetic missed-reminder backlog, to
 dev: localize ## Run without bundling. Calendar access and the login item do not work.
 	$(SWIFT) run -c $(CONFIG)
 
-reset-permissions: ## Forget the app's calendar permission decision.
+reset-permissions: ## Forget the app's calendar and reminders permission decisions.
 	tccutil reset Calendar $(BUNDLE_ID)
+	tccutil reset Reminders $(BUNDLE_ID)
 	@printf '%s\n' "Reset. Relaunch with 'make run' to be asked again."
 
 reset-data: ## Forget the app's preferences, restoring the out-of-the-box state.
 	@pkill -f "$(APP_BUNDLE)/Contents/MacOS" 2>/dev/null || true
 	@-defaults delete $(BUNDLE_ID)
-	@printf '%s\n' "Preferences cleared (menu bar icon shown, every calendar off, Glass)."
+	@printf '%s\n' "Preferences cleared (menu bar icon shown, every calendar off, reminders on, Glass)."
 
 clean: ## Remove all build products.
 	rm -rf "$(BUILD_DIR)"

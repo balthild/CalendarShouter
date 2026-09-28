@@ -11,6 +11,7 @@ public final class SettingsStore {
 	private enum Key {
 		static let showMenuBarIcon = "showMenuBarIcon"
 		static let enabledCalendarIDs = "enabledCalendarIDs"
+		static let includeReminders = "includeReminders"
 		static let soundName = "soundName"
 		static let showMissedReminders = "showMissedReminders"
 	}
@@ -40,6 +41,15 @@ public final class SettingsStore {
 		didSet { defaults.set(enabledCalendarIDs.sorted(), forKey: Key.enabledCalendarIDs) }
 	}
 
+	/// Whether reminders from the system Reminders app are shouted about as well.
+	///
+	/// Unlike calendar selection this is a single switch covering every reminder list;
+	/// there is no per-list allow-list. On by default, so reminders work out of the box
+	/// alongside the calendars the user opts into.
+	public var includeReminders: Bool {
+		didSet { defaults.set(includeReminders, forKey: Key.includeReminders) }
+	}
+
 	/// An empty name means silence.
 	public var soundName: String {
 		didSet { defaults.set(soundName, forKey: Key.soundName) }
@@ -50,6 +60,7 @@ public final class SettingsStore {
 		self.showMenuBarIcon = defaults.object(forKey: Key.showMenuBarIcon) as? Bool ?? true
 		self.showMissedReminders = defaults.object(forKey: Key.showMissedReminders) as? Bool ?? true
 		self.enabledCalendarIDs = Set(defaults.stringArray(forKey: Key.enabledCalendarIDs) ?? [])
+		self.includeReminders = defaults.object(forKey: Key.includeReminders) as? Bool ?? true
 		self.soundName = defaults.string(forKey: Key.soundName) ?? Self.defaultSoundName
 	}
 

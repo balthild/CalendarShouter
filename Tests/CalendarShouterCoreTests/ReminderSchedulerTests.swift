@@ -622,4 +622,107 @@ struct ReminderSchedulerTests {
 		#expect(refired.count == 1)
 		#expect(refired.first?.isSnooze == true)
 	}
+
+	// MARK: - System reminders
+
+	@Test("Shouts for a due reminder while reminders are switched on")
+	func firesForReminders() {
+		let defaults = makeDefaults()
+		let clock = FakeClock(now: referenceDate)
+		let service = FakeCalendarService()
+		service.remindersToReturn = [
+			makeEvent(
+				id: "reminder-1",
+				calendarID: "list-1",
+				fireDates: [referenceDate.addingTimeInterval(60)]
+			)
+		]
+
+		let scheduler = makeScheduler(
+			service: service,
+			settings: makeSettings(defaults: defaults),
+			clock: clock,
+			defaults: defaults
+		)
+		var fired: [ReminderFire] = []
+		scheduler.onFire = { fired.append(contentsOf: $0) }
+
+		scheduler.reload()
+		clock.advance(by: 60)
+
+		#expect(fired.map(\.event.id) == ["reminder-1"])
+	}
+
+	@Test("Stays silent for reminders that have been switched off")
+	func ignoresRemindersWhenDisabled() {
+		let defaults = makeDefaults()
+		let clock = FakeClock(now: referenceDate)
+		let service = FakeCalendarService()
+		service.remindersToReturn = [
+			makeEvent(
+				id: "reminder-1",
+				calendarID: "list-1",
+				fireDates: [referenceDate.addingTimeInterval(60)]
+			)
+		]
+		let settings = makeSettings(defaults: defaults)
+		settings.includeReminders = false
+
+		let scheduler = makeScheduler(
+			service: service,
+			settings: settings,
+			clock: clock,
+			defaults: defaults
+		)
+		var fired: [ReminderFire] = []
+		scheduler.onFire = { fired.append(contentsOf: $0) }
+
+		scheduler.reload()
+		clock.advance(by: 60)
+
+		#expect(fired.isEmpty)
+		// Nothing to look at, so the store is never queried for reminders.
+		#expect(service.requestedReminderRanges.isEmpty)
+	}
+
+	@Test("Switching reminders on does not replay their history")
+	func remindersActivationSuppressesHistory() {
+		let defaults = makeDefaults()
+		let clock = FakeClock(now: referenceDate)
+		let service = FakeCalendarService()
+		service.remindersToReturn = [
+			makeEvent(
+				id: "before",
+				calendarID: "list-1",
+				fireDates: [referenceDate.addingTimeInterval(30)]
+			),
+			makeEvent(
+				id: "after",
+				calendarID: "list-1",
+				fireDates: [referenceDate.addingTimeInterval(200)]
+			),
+		]
+		let settings = makeSettings(defaults: defaults)
+		settings.includeReminders = false
+
+		let scheduler = makeScheduler(
+			service: service,
+			settings: settings,
+			clock: clock,
+			defaults: defaults
+		)
+		var fired: [ReminderFire] = []
+		scheduler.onFire = { fired.append(contentsOf: $0) }
+
+		scheduler.reload()
+		clock.jump(by: 100)
+		settings.includeReminders = true
+		scheduler.reload()
+
+		// "before" came due before reminders were switched on, so it is not replayed.
+		#expect(fired.isEmpty)
+
+		clock.advance(by: 100)
+		#expect(fired.map(\.event.id) == ["after"])
+	}
 }

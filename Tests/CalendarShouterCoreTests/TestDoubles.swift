@@ -59,21 +59,33 @@ final class FakeClock: Clock {
 	}
 }
 
-/// Calendar service backed by in-memory events.
+/// Calendar service backed by in-memory events and reminders.
 @MainActor
 final class FakeCalendarService: CalendarServicing {
 	var authorization: CalendarAuthorization = .fullAccess
+	var remindersAuthorization: CalendarAuthorization = .fullAccess
 	var accounts: [CalendarAccount] = []
 	var eventsToReturn: [ReminderEvent] = []
+	var remindersToReturn: [ReminderEvent] = []
 	private(set) var requestedRanges: [(start: Date, end: Date)] = []
+	private(set) var requestedReminderRanges: [(start: Date, end: Date)] = []
 	private(set) var refreshCount = 0
 
 	func requestAccess() async -> Bool { true }
+
+	func requestRemindersAccess() async -> Bool { true }
 
 	func events(from startDate: Date, to endDate: Date) -> [ReminderEvent] {
 		requestedRanges.append((startDate, endDate))
 		return eventsToReturn.filter { event in
 			event.fireDates.contains { $0 > startDate && $0 <= endDate }
+		}
+	}
+
+	func reminders(from startDate: Date, to endDate: Date) -> [ReminderEvent] {
+		requestedReminderRanges.append((startDate, endDate))
+		return remindersToReturn.filter { reminder in
+			reminder.fireDates.contains { $0 > startDate && $0 <= endDate }
 		}
 	}
 

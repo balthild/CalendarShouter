@@ -8,3 +8,7 @@ NSCalendarsUsageDescription = "CalendarShouter reads your events to show a remin
 
 /* Purpose string for the Automation prompt raised when the login item is added. */
 NSAppleEventsUsageDescription = "CalendarShouter adds itself to your login items when you turn on “Launch at login”.";
+
+/* Purpose strings for the reminders access prompt. */
+NSRemindersFullAccessUsageDescription = "CalendarShouter reads your reminders to show one when a reminder's own alert time or due date arrives.";
+NSRemindersUsageDescription = "CalendarShouter reads your reminders to show one when a reminder's own alert time or due date arrives.";

@@ -92,6 +92,7 @@ public final class AppCoordinator {
 		applySettings()
 		scheduler.reload()
 		requestCalendarAccessIfNeeded()
+		requestRemindersAccessIfNeeded()
 	}
 
 	/// Brings the settings window to the front.
@@ -182,6 +183,7 @@ public final class AppCoordinator {
 			_ = settings.showMenuBarIcon
 			_ = settings.showMissedReminders
 			_ = settings.enabledCalendarIDs
+			_ = settings.includeReminders
 			_ = settings.soundName
 		} onChange: { [weak self] in
 			Task { @MainActor [weak self] in
@@ -220,7 +222,7 @@ public final class AppCoordinator {
 
 	/// Explains that the login item needs approving and offers to open the relevant pane.
 	private func presentLoginItemApprovalAlert() {
-		presentLoginItemAlert(
+		presentSettingsAlert(
 			title: String(localizable: .loginItemApprovalTitle),
 			message: String(localizable: .loginItemApprovalMessage),
 			primaryButton: String(localizable: .openLoginItemsSettings)
@@ -231,7 +233,7 @@ public final class AppCoordinator {
 
 	/// Explains that the Automation permission is needed to add the login item.
 	private func presentLoginItemAutomationAlert() {
-		presentLoginItemAlert(
+		presentSettingsAlert(
 			title: String(localizable: .loginItemAutomationTitle),
 			message: String(localizable: .loginItemAutomationMessage),
 			primaryButton: String(localizable: .openSystemSettings)
@@ -244,7 +246,7 @@ public final class AppCoordinator {
 	/// window the toggle lives in.
 	///
 	/// Deferred by a task: the toggle's binding starts this in the middle of a SwiftUI update.
-	private func presentLoginItemAlert(
+	private func presentSettingsAlert(
 		title: String,
 		message: String,
 		primaryButton: String,
@@ -281,7 +283,7 @@ public final class AppCoordinator {
 		NSWorkspace.shared.open(url)
 	}
 
-	// MARK: - Calendar access
+	// MARK: - Calendar and reminder access
 
 	private func requestCalendarAccessIfNeeded() {
 		guard calendarService.authorization.isUndetermined else { return }
@@ -298,6 +300,42 @@ public final class AppCoordinator {
 			guard let self else { return }
 			_ = await self.calendarService.requestAccess()
 			self.scheduler.reload()
+		}
+	}
+
+	private func requestRemindersAccessIfNeeded() {
+		guard calendarService.remindersAuthorization.isUndetermined else { return }
+		requestRemindersAccess()
+	}
+
+	private func requestRemindersAccess() {
+		Task { @MainActor [weak self] in
+			guard let self else { return }
+			_ = await self.calendarService.requestRemindersAccess()
+			self.scheduler.reload()
+		}
+	}
+
+	/// Reacts to the user switching reminders on: asks for access if it was never requested,
+	/// or explains how to restore it if it was refused.
+	private func handleRemindersAccess() {
+		switch calendarService.remindersAuthorization {
+		case .notDetermined:
+			requestRemindersAccess()
+		case .denied, .restricted:
+			presentRemindersAccessAlert()
+		default:
+			break
+		}
+	}
+
+	private func presentRemindersAccessAlert() {
+		presentSettingsAlert(
+			title: String(localizable: .remindersAccessDeniedTitle),
+			message: String(localizable: .remindersAccessDeniedMessage),
+			primaryButton: String(localizable: .openSystemSettings)
+		) {
+			Self.openRemindersPrivacySettings()
 		}
 	}
 
@@ -349,6 +387,7 @@ public final class AppCoordinator {
 				soundCatalog: soundCatalog,
 				onRequestCalendarAccess: { [weak self] in self?.requestCalendarAccess() },
 				onOpenCalendarPrivacySettings: { Self.openCalendarPrivacySettings() },
+				onRemindersAccessNeeded: { [weak self] in self?.handleRemindersAccess() },
 				onPreviewSound: { [weak self] soundName in
 					self?.soundPlayer.play(soundName: soundName)
 				}
@@ -359,6 +398,14 @@ public final class AppCoordinator {
 	private static func openCalendarPrivacySettings() {
 		let url = URL(
 			string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Calendars"
+		)
+		guard let url else { return }
+		NSWorkspace.shared.open(url)
+	}
+
+	private static func openRemindersPrivacySettings() {
+		let url = URL(
+			string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Reminders"
 		)
 		guard let url else { return }
 		NSWorkspace.shared.open(url)

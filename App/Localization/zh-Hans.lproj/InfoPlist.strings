@@ -8,3 +8,7 @@ NSCalendarsUsageDescription = "日历提醒需要读取你的日程，以便在�
 
 /* Purpose string for the Automation prompt raised when the login item is added. */
 NSAppleEventsUsageDescription = "日历提醒在你开启“登录时启动”时，需要控制“系统事件”以把自身加入登录项。";
+
+/* Purpose strings for the reminders access prompt. */
+NSRemindersFullAccessUsageDescription = "日历提醒需要读取你的提醒事项，以便在提醒自身的提醒时间或截止时间到达时通知你。";
+NSRemindersUsageDescription = "日历提醒需要读取你的提醒事项，以便在提醒自身的提醒时间或截止时间到达时通知你。";

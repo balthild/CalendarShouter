@@ -122,6 +122,17 @@
 				"zh-Hans": { "stringUnit": { "state": "translated", "value": "全部忽略" } }
 			}
 		},
+		"includeReminders": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": {
+					"stringUnit": { "state": "translated", "value": "Show alerts from the “Reminders” app." }
+				},
+				"zh-Hans": {
+					"stringUnit": { "state": "translated", "value": "显示来自“提醒事项”应用的提醒" }
+				}
+			}
+		},
 		"launchAtLogin": {
 			"extractionState": "manual",
 			"localizations": {
@@ -275,6 +286,34 @@
 				"zh-Hans": { "stringUnit": { "state": "translated", "value": "提醒声音" } }
 			}
 		},
+		"remindersAccessDeniedMessage": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": {
+					"stringUnit": {
+						"state": "translated",
+						"value": "CalendarShouter needs access to your reminders before it can shout for them. Grant it in System Settings → Privacy & Security → Reminders."
+					}
+				},
+				"zh-Hans": {
+					"stringUnit": {
+						"state": "translated",
+						"value": "“日历提醒”需要访问“提醒事项”才能为其发出提醒。请在“系统设置 → 隐私与安全性 → 提醒事项”中允许。"
+					}
+				}
+			}
+		},
+		"remindersAccessDeniedTitle": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": {
+					"stringUnit": { "state": "translated", "value": "Reminders Access Needed" }
+				},
+				"zh-Hans": {
+					"stringUnit": { "state": "translated", "value": "需要“提醒事项”权限" }
+				}
+			}
+		},
 		"remindersOnlyForEnabledCalendars": {
 			"extractionState": "manual",
 			"localizations": {
@@ -307,13 +346,10 @@
 			"extractionState": "manual",
 			"localizations": {
 				"en": {
-					"stringUnit": {
-						"state": "translated",
-						"value": "Show reminders missed while asleep"
-					}
+					"stringUnit": { "state": "translated", "value": "Show missed reminders" }
 				},
 				"zh-Hans": {
-					"stringUnit": { "state": "translated", "value": "显示睡眠期间错过的提醒" }
+					"stringUnit": { "state": "translated", "value": "显示错过的提醒" }
 				}
 			}
 		},

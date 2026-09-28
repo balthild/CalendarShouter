@@ -1,12 +1,12 @@
 import Foundation
 
-/// Turns an event's alarms into reminder firings.
+/// Turns events' and reminders' alarms into reminder firings.
 ///
-/// The scheduler fetches a window of events, expands each event's alarms into
-/// individual firings, remembers which have already been shown, and holds a
-/// single timer for the next one due. Alarms that came due while the app was
-/// asleep or closed are replayed as missed reminders, guarded so that neither a
-/// newly enabled calendar nor an already acknowledged event floods the user.
+/// The scheduler fetches a window of events and the user's reminders, expands each item's
+/// alarms into individual firings, remembers which have already been shown, and holds a
+/// single timer for the next one due. Alarms that came due while the app was asleep or closed
+/// are replayed as missed reminders, guarded so that neither a newly enabled calendar nor an
+/// already acknowledged item floods the user.
 @MainActor
 public final class ReminderScheduler {
 	/// How far ahead the scheduler looks for alarms.
@@ -26,6 +26,7 @@ public final class ReminderScheduler {
 		static let calendarActivationDates = "calendarActivationDates"
 		static let acknowledgedTimes = "reminderAcknowledgementTimes"
 		static let snoozedReminders = "snoozedReminders"
+		static let remindersActivationDate = "remindersActivationDate"
 	}
 
 	/// A snoozed reminder, persisted so it survives a relaunch.
@@ -50,6 +51,9 @@ public final class ReminderScheduler {
 	private var lastEvaluationDate: Date?
 	private var calendarActivationDates: [String: Date]
 	private var knownEnabledCalendarIDs: Set<String>
+	/// When the user most recently switched reminders on, so their history is not replayed.
+	private var remindersActivationDate: Date?
+	private var knownIncludeReminders: Bool
 	private var acknowledgedTimes: [String: Date]
 	private var snoozes: [PersistedSnooze]
 
@@ -72,6 +76,8 @@ public final class ReminderScheduler {
 		self.calendarActivationDates =
 			Self.decode([String: Date].self, from: defaults, Key.calendarActivationDates) ?? [:]
 		self.knownEnabledCalendarIDs = settings.enabledCalendarIDs
+		self.remindersActivationDate = defaults.object(forKey: Key.remindersActivationDate) as? Date
+		self.knownIncludeReminders = settings.includeReminders
 		self.acknowledgedTimes =
 			Self.decode([String: Date].self, from: defaults, Key.acknowledgedTimes) ?? [:]
 		let snoozes = Self.decode([PersistedSnooze].self, from: defaults, Key.snoozedReminders) ?? []
@@ -95,17 +101,56 @@ public final class ReminderScheduler {
 
 		pruneBookkeeping(from: windowStart, to: windowEnd)
 		updateCalendarActivations(now: now)
+		updateReminderActivation(now: now)
 
-		let eventFires = service.events(from: windowStart, to: windowEnd)
-			.filter { settings.isReminderEnabled(forCalendarID: $0.calendar.id) }
-			.flatMap { event in
-				event.fireDates
+		let eventFires = fires(
+			from: service.events(from: windowStart, to: windowEnd),
+			windowStart: windowStart,
+			windowEnd: windowEnd,
+			now: now,
+			isEnabled: { self.settings.isReminderEnabled(forCalendarID: $0.calendar.id) },
+			isAfterActivation: { event, fireDate in
+				self.isAfterActivation(fireDate, calendarID: event.calendar.id)
+			}
+		)
+		// Reminders are all-or-nothing: there is no per-list selection to filter on.
+		let reminderFires =
+			settings.includeReminders
+			? fires(
+				from: service.reminders(from: windowStart, to: windowEnd),
+				windowStart: windowStart,
+				windowEnd: windowEnd,
+				now: now,
+				isEnabled: { _ in true },
+				isAfterActivation: { _, fireDate in self.isAfterReminderActivation(fireDate) }
+			)
+			: []
+
+		pendingFires = (eventFires + reminderFires + snoozes.map { self.fire(for: $0) })
+			.sorted { $0.fireDate < $1.fireDate }
+		scheduleNext()
+	}
+
+	/// Expands a set of items' alarm times into firings, dropping the ones already dealt
+	/// with and the ones their source does not currently allow.
+	private func fires(
+		from items: [ReminderEvent],
+		windowStart: Date,
+		windowEnd: Date,
+		now: Date,
+		isEnabled: (ReminderEvent) -> Bool,
+		isAfterActivation: (ReminderEvent, Date) -> Bool
+	) -> [ReminderFire] {
+		items
+			.filter(isEnabled)
+			.flatMap { item in
+				item.fireDates
 					.filter { $0 > windowStart && $0 <= windowEnd }
-					.filter { self.isAfterActivation($0, calendarID: event.calendar.id) }
-					.filter { self.isUnacknowledged($0, eventID: event.id) }
+					.filter { isAfterActivation(item, $0) }
+					.filter { self.isUnacknowledged($0, eventID: item.id) }
 					.map { fireDate in
 						ReminderFire(
-							event: event,
+							event: item,
 							fireDate: fireDate,
 							isSnooze: false,
 							isLate: fireDate < now.addingTimeInterval(-Self.missedGraceInterval)
@@ -113,10 +158,6 @@ public final class ReminderScheduler {
 					}
 			}
 			.filter { !handledFireIDs.contains($0.id) }
-
-		pendingFires = (eventFires + snoozes.map { self.fire(for: $0) })
-			.sorted { $0.fireDate < $1.fireDate }
-		scheduleNext()
 	}
 
 	/// How far back this evaluation looks.
@@ -256,6 +297,31 @@ public final class ReminderScheduler {
 	/// one that was already enabled has no stamp and imposes no restriction.
 	private func isAfterActivation(_ fireDate: Date, calendarID: String) -> Bool {
 		fireDate > (calendarActivationDates[calendarID] ?? .distantPast)
+	}
+
+	/// Stamps the moment reminders are switched on, so their history is not replayed the
+	/// first time they start producing reminders. Turning them off forgets the stamp, so
+	/// switching them back on starts a fresh window.
+	private func updateReminderActivation(now: Date) {
+		let enabled = settings.includeReminders
+		let becameEnabled = enabled && !knownIncludeReminders
+		knownIncludeReminders = enabled
+
+		if !enabled {
+			guard remindersActivationDate != nil else { return }
+			remindersActivationDate = nil
+			defaults.removeObject(forKey: Key.remindersActivationDate)
+			return
+		}
+		guard becameEnabled else { return }
+		remindersActivationDate = now
+		defaults.set(now, forKey: Key.remindersActivationDate)
+	}
+
+	/// Reminders only suppress history once they have been switched on at runtime; when they
+	/// have been on all along there is no stamp and no restriction.
+	private func isAfterReminderActivation(_ fireDate: Date) -> Bool {
+		fireDate > (remindersActivationDate ?? .distantPast)
 	}
 
 	private func isUnacknowledged(_ fireDate: Date, eventID: String) -> Bool {

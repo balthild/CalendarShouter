@@ -43,5 +43,9 @@
 	<string>CalendarShouter reads your events to show a reminder when an event's own alert time arrives.</string>
 	<key>NSAppleEventsUsageDescription</key>
 	<string>CalendarShouter adds itself to your login items when you turn on “Launch at login”.</string>
+	<key>NSRemindersFullAccessUsageDescription</key>
+	<string>CalendarShouter reads your reminders to show one when a reminder's own alert time or due date arrives.</string>
+	<key>NSRemindersUsageDescription</key>
+	<string>CalendarShouter reads your reminders to show one when a reminder's own alert time or due date arrives.</string>
 </dict>
 </plist>

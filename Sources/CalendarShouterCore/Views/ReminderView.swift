@@ -122,9 +122,12 @@ extension ReminderEvent {
 	}
 
 	/// The event's time range, as shown on a reminder.
+	///
+	/// A point in time — a reminder's due time, say — is shown once rather than as a range.
 	var reminderTimeText: String {
 		guard !isAllDay else { return String(localizable: .allDay) }
 		let start = startDate.formatted(.dateTime.month(.abbreviated).day().hour().minute())
+		guard startDate != endDate else { return start }
 		let end = endDate.formatted(.dateTime.hour().minute())
 		return "\(start) – \(end)"
 	}

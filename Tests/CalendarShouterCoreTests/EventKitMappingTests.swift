@@ -246,3 +246,148 @@ struct CalendarAccountGroupingTests {
 		#expect(CalendarAccount.grouped([]).isEmpty)
 	}
 }
+
+/// Builds an `EKReminder` in a standalone store so the mapping can be exercised
+/// without touching the user's real reminders.
+@MainActor
+private func makeReminder(
+	title: String? = "Water the plants",
+	dueDateComponents: DateComponents? = nil,
+	alarms: [EKAlarm]? = nil,
+	isCompleted: Bool = false,
+	listTitle: String = "Reminders"
+) -> EKReminder {
+	let store = EKEventStore()
+	let calendar = EKCalendar(for: .reminder, eventStore: store)
+	calendar.title = listTitle
+	calendar.cgColor = CGColor(red: 0.9, green: 0.4, blue: 0.2, alpha: 1)
+
+	let reminder = EKReminder(eventStore: store)
+	reminder.calendar = calendar
+	reminder.title = title
+	reminder.dueDateComponents = dueDateComponents
+	if let alarms {
+		reminder.alarms = alarms
+	}
+	reminder.isCompleted = isCompleted
+	return reminder
+}
+
+/// A due date built in the current calendar, so expectations do not depend on the
+/// machine's time zone.
+private func localDueDate(
+	year: Int = 2023,
+	month: Int = 11,
+	day: Int = 14,
+	hour: Int? = nil,
+	minute: Int? = nil
+) -> (components: DateComponents, date: Date) {
+	var components = DateComponents()
+	components.year = year
+	components.month = month
+	components.day = day
+	components.hour = hour
+	components.minute = minute
+	return (components, Calendar.current.date(from: components) ?? Date())
+}
+
+@MainActor
+@Suite("Reminder mapping")
+struct ReminderMappingTests {
+	private let alarmInstant = Date(timeIntervalSince1970: 1_700_000_000)
+
+	@Test("A reminder with neither a due time nor an alarm never produces a reminder")
+	func dueTimeOrAlarmRequired() {
+		#expect(EventKitCalendarService.reminderEvent(from: makeReminder()) == nil)
+	}
+
+	@Test("A completed reminder never produces a reminder")
+	func completedIsSkipped() {
+		let due = localDueDate(hour: 17, minute: 30)
+		let reminder = makeReminder(dueDateComponents: due.components, isCompleted: true)
+
+		#expect(EventKitCalendarService.reminderEvent(from: reminder) == nil)
+	}
+
+	@Test("A due time fires at that single instant")
+	func dueTimeIsAPoint() throws {
+		let due = localDueDate(hour: 17, minute: 30)
+		let reminder = makeReminder(dueDateComponents: due.components)
+
+		let mapped = try #require(EventKitCalendarService.reminderEvent(from: reminder))
+		#expect(mapped.fireDates == [due.date])
+		#expect(mapped.isAllDay == false)
+		#expect(mapped.startDate == due.date)
+		#expect(mapped.endDate == due.date)
+	}
+
+	@Test("A date-only due date is announced mid-morning as an all-day item")
+	func dateOnlyDueIsAllDay() throws {
+		let due = localDueDate()
+		let reminder = makeReminder(dueDateComponents: due.components)
+
+		let mapped = try #require(EventKitCalendarService.reminderEvent(from: reminder))
+		let startOfDay = Calendar.current.startOfDay(for: due.date)
+		let midMorning = try #require(
+			Calendar.current.date(byAdding: .hour, value: 9, to: startOfDay)
+		)
+
+		#expect(mapped.isAllDay == true)
+		#expect(mapped.startDate == startOfDay)
+		#expect(mapped.fireDates == [midMorning])
+	}
+
+	@Test("An absolute alarm fires at its own instant")
+	func absoluteAlarm() throws {
+		let alarmDate = alarmInstant.addingTimeInterval(-900)
+		let reminder = makeReminder(alarms: [EKAlarm(absoluteDate: alarmDate)])
+
+		let mapped = try #require(EventKitCalendarService.reminderEvent(from: reminder))
+		#expect(mapped.fireDates == [alarmDate])
+	}
+
+	@Test("A relative alarm fires relative to the due date")
+	func relativeAlarm() throws {
+		let due = localDueDate(hour: 17, minute: 30)
+		let reminder = makeReminder(
+			dueDateComponents: due.components,
+			alarms: [EKAlarm(relativeOffset: -600)]
+		)
+
+		let mapped = try #require(EventKitCalendarService.reminderEvent(from: reminder))
+		#expect(mapped.fireDates == [due.date.addingTimeInterval(-600)])
+	}
+
+	@Test("An alarm replaces the due date rather than adding to it")
+	func alarmWinsOverDueDate() throws {
+		let due = localDueDate(hour: 17, minute: 30)
+		let alarmDate = due.date.addingTimeInterval(-900)
+		let reminder = makeReminder(
+			dueDateComponents: due.components,
+			alarms: [EKAlarm(absoluteDate: alarmDate)]
+		)
+
+		let mapped = try #require(EventKitCalendarService.reminderEvent(from: reminder))
+		#expect(mapped.fireDates == [alarmDate])
+	}
+
+	@Test("A relative alarm without a due date has nothing to fire from")
+	func relativeAlarmWithoutDueIsSkipped() {
+		let reminder = makeReminder(alarms: [EKAlarm(relativeOffset: -600)])
+
+		#expect(EventKitCalendarService.reminderEvent(from: reminder) == nil)
+	}
+
+	@Test("The reminder's list, notes and colour are carried over")
+	func copiesListAndNotes() throws {
+		let due = localDueDate(hour: 9)
+		let reminder = makeReminder(dueDateComponents: due.components, listTitle: "Errands")
+		reminder.notes = "  Take the blue bag  "
+
+		let mapped = try #require(EventKitCalendarService.reminderEvent(from: reminder))
+		#expect(mapped.calendar.title == "Errands")
+		#expect(mapped.calendar.color.red > 0.5)
+		#expect(mapped.notes == "Take the blue bag")
+		#expect(mapped.location == nil)
+	}
+}

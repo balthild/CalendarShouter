@@ -380,12 +380,17 @@ struct SettingsContent: View {
 	let soundCatalog: SoundCatalog
 	let onRequestCalendarAccess: @MainActor () -> Void
 	let onOpenCalendarPrivacySettings: @MainActor () -> Void
+	let onRemindersAccessNeeded: @MainActor () -> Void
 	let onPreviewSound: @MainActor (String) -> Void
 
 	var body: some View {
 		switch selection.tab {
 		case .general:
-			GeneralSettingsPane(store: store, loginItemController: loginItemController)
+			GeneralSettingsPane(
+				store: store,
+				loginItemController: loginItemController,
+				onRemindersAccessNeeded: onRemindersAccessNeeded
+			)
 		case .calendars:
 			CalendarsSettingsPane(
 				store: store,
@@ -408,6 +413,7 @@ struct SettingsContent: View {
 struct GeneralSettingsPane: View {
 	@Bindable var store: SettingsStore
 	@Bindable var loginItemController: LoginItemController
+	let onRemindersAccessNeeded: @MainActor () -> Void
 
 	var body: some View {
 		SettingsForm {
@@ -415,15 +421,31 @@ struct GeneralSettingsPane: View {
 				Toggle(isOn: $store.showMenuBarIcon) {
 					Text(localizable: .showMenuBarIcon)
 				}
-				Toggle(isOn: $store.showMissedReminders) {
-					Text(localizable: .showMissedReminders)
-				}
 				Toggle(isOn: launchAtLoginBinding) {
 					Text(localizable: .launchAtLogin)
 				}
 				.disabled(!loginItemController.isSupported)
+
+				Toggle(isOn: $store.showMissedReminders) {
+					Text(localizable: .showMissedReminders)
+				}
+				Toggle(isOn: remindersBinding) {
+					Text(localizable: .includeReminders)
+				}
 			}
 		}
+	}
+
+	/// Turning reminders on asks the coordinator to make sure access is granted; it decides
+	/// whether that means prompting or explaining a previous refusal.
+	private var remindersBinding: Binding<Bool> {
+		Binding(
+			get: { store.includeReminders },
+			set: { isOn in
+				store.includeReminders = isOn
+				if isOn { onRemindersAccessNeeded() }
+			}
+		)
 	}
 
 	/// `LoginItemController` owns the truth, so the toggle reads back from it.
