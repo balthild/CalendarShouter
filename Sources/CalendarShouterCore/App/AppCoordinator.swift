@@ -102,11 +102,11 @@ public final class AppCoordinator {
 		settingsWindowController.show()
 	}
 
-	/// Presents a synthetic reminder.
+	/// Presents a synthetic calendar event reminder.
 	///
-	/// Used by the `--demo-reminder` launch argument so the reminder panel can be
+	/// Used by the `--demo-calendar` launch argument so the reminder panel can be
 	/// inspected without waiting for a real calendar alarm.
-	public func presentDemoReminder(after delay: TimeInterval = 1) {
+	public func presentDemoCalendarEvent(after delay: TimeInterval = 1) {
 		let startDate = Date().addingTimeInterval(300)
 		let event = ReminderEvent(
 			id: "demo-event",
@@ -132,11 +132,11 @@ public final class AppCoordinator {
 		}
 	}
 
-	/// Presents a synthetic backlog of missed reminders.
+	/// Presents a synthetic backlog of missed calendar reminders.
 	///
-	/// Used by the `--demo-missed-reminders` launch argument so the summary panel can
+	/// Used by the `--demo-calendar-missed` launch argument so the summary panel can
 	/// be inspected without waiting for a real backlog.
-	public func presentDemoMissedReminders(after delay: TimeInterval = 1) {
+	public func presentDemoCalendarMissedEvents(after delay: TimeInterval = 1) {
 		let now = Date()
 		let colors: [RGBColor] = [
 			RGBColor(red: 0.35, green: 0.45, blue: 0.95),
@@ -165,6 +165,61 @@ public final class AppCoordinator {
 			)
 			return ReminderFire(event: event, fireDate: start, isSnooze: false, isLate: true)
 		}
+
+		Task { @MainActor [weak self] in
+			try? await Task.sleep(for: .seconds(delay))
+			self?.present(fires)
+		}
+	}
+
+	/// Presents synthetic reminders from the Reminders app.
+	///
+	/// Used by the `--demo-reminder` launch argument. A timed reminder and an all-day
+	/// reminder are shown together, so both layouts can be inspected at once.
+	public func presentDemoReminder(after delay: TimeInterval = 1) {
+		let calendar = CalendarInfo(
+			id: "demo-reminder-list",
+			title: String(localizable: .demoCalendarTitle),
+			color: CalendarInfo.reminderColor,
+			account: CalendarAccountRef(id: "demo-account", title: "iCloud", kind: .calDAV)
+		)
+		let now = Date()
+		let timedDue = now.addingTimeInterval(300)
+		let allDayStart = Calendar.current.startOfDay(for: now)
+
+		let fires = [
+			ReminderFire(
+				event: ReminderEvent(
+					id: "demo-reminder-timed",
+					title: String(localizable: .demoEventTitle),
+					startDate: timedDue,
+					endDate: timedDue,
+					isAllDay: false,
+					location: nil,
+					notes: nil,
+					calendar: calendar,
+					fireDates: [now]
+				),
+				fireDate: now,
+				isSnooze: false
+			),
+			ReminderFire(
+				event: ReminderEvent(
+					id: "demo-reminder-allday",
+					title: String(localizable: .demoEventTitle),
+					startDate: allDayStart,
+					endDate: Calendar.current.date(byAdding: .day, value: 1, to: allDayStart)
+						?? allDayStart,
+					isAllDay: true,
+					location: nil,
+					notes: String(localizable: .demoEventNotes),
+					calendar: calendar,
+					fireDates: [now]
+				),
+				fireDate: now,
+				isSnooze: false
+			),
+		]
 
 		Task { @MainActor [weak self] in
 			try? await Task.sleep(for: .seconds(delay))

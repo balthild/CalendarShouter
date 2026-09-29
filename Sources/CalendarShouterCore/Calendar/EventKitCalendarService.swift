@@ -85,7 +85,7 @@ public final class EventKitCalendarService: CalendarServicing {
 			return
 		}
 		accounts = CalendarAccount.grouped(
-			store.calendars(for: .event).map { Self.calendarInfo(from: $0) }
+			store.calendars(for: .event).map { CalendarInfo($0) }
 		)
 	}
 
@@ -123,7 +123,7 @@ public final class EventKitCalendarService: CalendarServicing {
 		) { @Sendable [weak self] reminders in
 			// The callback is not tied to any queue, so the mapping runs where it lands and
 			// only the resulting value crosses back to the main actor.
-			let fetched = (reminders ?? []).compactMap { Self.reminderEvent(from: $0) }
+			let fetched = (reminders ?? []).compactMap { ReminderEvent($0) }
 			Task { @MainActor [weak self] in
 				guard let self, self.reminderFetchGeneration == generation else { return }
 				self.reminderFetchRequest = nil
@@ -137,7 +137,7 @@ public final class EventKitCalendarService: CalendarServicing {
 		guard authorization.canReadEvents else { return [] }
 		let predicate = store.predicateForEvents(withStart: startDate, end: endDate, calendars: nil)
 		return store.events(matching: predicate).compactMap { event in
-			Self.reminderEvent(from: event)
+			ReminderEvent(event)
 		}
 	}
 
@@ -151,8 +151,8 @@ public final class EventKitCalendarService: CalendarServicing {
 
 // MARK: - EventKit conversion
 
-/// The conversions are deliberately `nonisolated`: they are pure, and the reminder fetch
-/// resolves its results on whatever queue EventKit calls back on.
+/// Helpers used by the model conversions. They are deliberately `nonisolated`, since the
+/// reminder fetch resolves its results on whatever queue EventKit calls back on.
 @MainActor
 extension EventKitCalendarService {
 	nonisolated static func authorization(from status: EKAuthorizationStatus) -> CalendarAuthorization
@@ -208,21 +208,14 @@ extension EventKitCalendarService {
 		@unknown default: .other
 		}
 	}
+}
 
-	nonisolated static func calendarInfo(from calendar: EKCalendar) -> CalendarInfo {
-		CalendarInfo(
-			id: calendar.calendarIdentifier,
-			title: calendar.title,
-			color: rgbColor(from: calendar.cgColor),
-			account: accountRef(from: calendar.source)
-		)
-	}
-
+extension ReminderEvent {
 	/// Converts an event, returning `nil` when it should never produce a reminder.
 	///
 	/// Events are skipped when they are cancelled, declined by the user, or carry
 	/// no alarm that fires at a point in time (location-based alarms are ignored).
-	nonisolated static func reminderEvent(from event: EKEvent) -> ReminderEvent? {
+	init?(_ event: EKEvent) {
 		guard let startDate = event.startDate, let endDate = event.endDate else { return nil }
 		guard event.status != .canceled else { return nil }
 		guard let calendar = event.calendar else { return nil }
@@ -241,7 +234,7 @@ extension EventKitCalendarService {
 		}
 		guard !fireDates.isEmpty else { return nil }
 
-		return ReminderEvent(
+		self.init(
 			id: event.eventIdentifier ?? UUID().uuidString,
 			title: (event.title ?? "").trimmingCharacters(in: .whitespacesAndNewlines),
 			startDate: startDate,
@@ -249,28 +242,20 @@ extension EventKitCalendarService {
 			isAllDay: event.isAllDay,
 			location: event.location?.trimmedOrNil,
 			notes: event.notes?.trimmedOrNil,
-			calendar: calendarInfo(from: calendar),
+			calendar: CalendarInfo(calendar),
 			fireDates: fireDates
 		)
-	}
-
-	/// A reminder's due date, resolved into the instants a reminder is shown at.
-	struct ReminderDue {
-		let startDate: Date
-		let endDate: Date
-		let fireDate: Date
-		let isAllDay: Bool
 	}
 
 	/// Converts a reminder, returning `nil` when it should never produce a reminder.
 	///
 	/// Completed reminders are skipped, as are reminders that offer neither a time-based
 	/// alarm nor a due date: there would be no instant to shout at.
-	nonisolated static func reminderEvent(from reminder: EKReminder) -> ReminderEvent? {
+	init?(_ reminder: EKReminder) {
 		guard !reminder.isCompleted else { return nil }
 		guard let calendar = reminder.calendar else { return nil }
 
-		let due = due(from: reminder.dueDateComponents)
+		let due = ReminderDue(reminder.dueDateComponents)
 
 		let alarmDates = (reminder.alarms ?? []).filter { $0.isTimeBased }.compactMap {
 			alarm -> Date? in
@@ -281,7 +266,7 @@ extension EventKitCalendarService {
 		let fireDates = alarmDates.isEmpty ? due.map { [$0.fireDate] } ?? [] : alarmDates
 		guard !fireDates.isEmpty else { return nil }
 
-		return ReminderEvent(
+		self.init(
 			id: reminder.calendarItemIdentifier,
 			title: (reminder.title ?? "").trimmingCharacters(in: .whitespacesAndNewlines),
 			startDate: due?.startDate ?? fireDates.min() ?? Date(),
@@ -289,32 +274,65 @@ extension EventKitCalendarService {
 			isAllDay: due?.isAllDay ?? false,
 			location: nil,
 			notes: reminder.notes?.trimmedOrNil,
-			calendar: calendarInfo(from: calendar),
+			calendar: CalendarInfo(calendar, color: CalendarInfo.reminderColor),
 			fireDates: fireDates
 		)
 	}
+}
 
+/// A reminder's due date, resolved into the instants a reminder is shown at.
+struct ReminderDue {
+	let startDate: Date
+	let endDate: Date
+	let fireDate: Date
+	let isAllDay: Bool
+}
+
+extension ReminderDue {
 	/// Resolves a reminder's due date components.
 	///
 	/// A due date that names a time of day is a single instant. A date-only due date has no
 	/// time at all, so it is announced mid-morning and shown as an all-day item, rather than
 	/// at midnight, when the day it belongs to has not really started.
-	nonisolated static func due(from components: DateComponents?) -> ReminderDue? {
-		guard let components, let date = Calendar.current.date(from: components) else { return nil }
+	init?(_ components: DateComponents?) {
+		guard let components, let date = Calendar.current.date(from: components) else {
+			return nil
+		}
 
-		guard components.hour != nil else {
+		if components.hour != nil {
+			self.init(
+				startDate: date,
+				endDate: date,
+				fireDate: date,
+				isAllDay: false
+			)
+		} else {
 			let hour = 9
 			let startDate = Calendar.current.startOfDay(for: date)
 			let fireDate = Calendar.current.date(byAdding: .hour, value: hour, to: startDate) ?? startDate
 			let endDate = Calendar.current.date(byAdding: .day, value: 1, to: startDate) ?? startDate
-			return ReminderDue(
+			self.init(
 				startDate: startDate,
 				endDate: endDate,
 				fireDate: fireDate,
 				isAllDay: true
 			)
 		}
-		return ReminderDue(startDate: date, endDate: date, fireDate: date, isAllDay: false)
+	}
+}
+
+extension CalendarInfo {
+	/// Builds the calendar metadata shown for an item.
+	///
+	/// A reminder list's own colour is deliberately not used: every Reminders item is shown
+	/// with `CalendarInfo.reminderColor`, so the panel does not vary by list.
+	init(_ calendar: EKCalendar, color: RGBColor? = nil) {
+		self.init(
+			id: calendar.calendarIdentifier,
+			title: calendar.title,
+			color: color ?? EventKitCalendarService.rgbColor(from: calendar.cgColor),
+			account: EventKitCalendarService.accountRef(from: calendar.source)
+		)
 	}
 }
 

@@ -46,6 +46,8 @@ public struct CalendarAccountRef: Sendable, Equatable, Hashable, Codable {
 
 /// A calendar the app can read events from.
 public struct CalendarInfo: Sendable, Identifiable, Equatable, Hashable, Codable {
+	public static let reminderColor = RGBColor(red: 0, green: 0.478, blue: 1)
+
 	public let id: String
 	public let title: String
 	public let color: RGBColor

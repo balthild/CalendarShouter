@@ -91,7 +91,9 @@ public final class ReminderWindowController {
 		let hostingView = NSHostingView(rootView: content)
 		hostingView.frame = NSRect(x: 0, y: 0, width: Self.panelWidth, height: 200)
 		hostingView.layoutSubtreeIfNeeded()
-		let height = max(hostingView.fittingSize.height, 180)
+		// Sized to the content, with no minimum: a taller panel would centre the
+		// content and inflate the apparent top and bottom padding.
+		let height = hostingView.fittingSize.height
 
 		// The material behind the content is what gives the panel its
 		// Quick Look-like translucency. A `behindWindow` material is composited by

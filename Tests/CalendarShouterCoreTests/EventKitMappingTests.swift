@@ -47,7 +47,7 @@ struct EventKitMappingTests {
 			alarms: [EKAlarm(relativeOffset: -600)]
 		)
 
-		let reminder = try #require(EventKitCalendarService.reminderEvent(from: event))
+		let reminder = try #require(ReminderEvent(event))
 		#expect(reminder.fireDates == [startDate.addingTimeInterval(-600)])
 	}
 
@@ -60,7 +60,7 @@ struct EventKitMappingTests {
 			alarms: [EKAlarm(absoluteDate: alarmDate)]
 		)
 
-		let reminder = try #require(EventKitCalendarService.reminderEvent(from: event))
+		let reminder = try #require(ReminderEvent(event))
 		#expect(reminder.fireDates == [alarmDate])
 	}
 
@@ -72,7 +72,7 @@ struct EventKitMappingTests {
 			alarms: [EKAlarm(relativeOffset: -300), EKAlarm(relativeOffset: -60)]
 		)
 
-		let reminder = try #require(EventKitCalendarService.reminderEvent(from: event))
+		let reminder = try #require(ReminderEvent(event))
 		#expect(reminder.fireDates.count == 2)
 	}
 
@@ -84,7 +84,7 @@ struct EventKitMappingTests {
 			alarms: []
 		)
 
-		#expect(EventKitCalendarService.reminderEvent(from: event) == nil)
+		#expect(ReminderEvent(event) == nil)
 	}
 
 	@Test("A location-based alarm is ignored")
@@ -99,7 +99,7 @@ struct EventKitMappingTests {
 			alarms: [alarm]
 		)
 
-		#expect(EventKitCalendarService.reminderEvent(from: event) == nil)
+		#expect(ReminderEvent(event) == nil)
 	}
 
 	// Note: cancelled events are also skipped, but `EKEvent.status` is read-only
@@ -115,7 +115,7 @@ struct EventKitMappingTests {
 		)
 		event.calendar = nil
 
-		#expect(EventKitCalendarService.reminderEvent(from: event) == nil)
+		#expect(ReminderEvent(event) == nil)
 	}
 
 	@Test("The calendar's title and color are carried over")
@@ -127,7 +127,7 @@ struct EventKitMappingTests {
 			calendarTitle: "Personal"
 		)
 
-		let reminder = try #require(EventKitCalendarService.reminderEvent(from: event))
+		let reminder = try #require(ReminderEvent(event))
 		#expect(reminder.calendar.title == "Personal")
 		#expect(reminder.calendar.color.red > 0.1)
 		#expect(reminder.calendar.color.blue > 0.5)
@@ -143,7 +143,7 @@ struct EventKitMappingTests {
 			alarms: [EKAlarm(relativeOffset: -300)]
 		)
 
-		let reminder = try #require(EventKitCalendarService.reminderEvent(from: event))
+		let reminder = try #require(ReminderEvent(event))
 		#expect(reminder.location == nil)
 		#expect(reminder.notes == nil)
 	}
@@ -156,7 +156,7 @@ struct EventKitMappingTests {
 			alarms: [EKAlarm(relativeOffset: -300)]
 		)
 
-		let reminder = try #require(EventKitCalendarService.reminderEvent(from: event))
+		let reminder = try #require(ReminderEvent(event))
 		// A standalone calendar has no source, which is reported rather than dropped.
 		#expect(reminder.calendar.account.kind == .other)
 	}
@@ -298,7 +298,7 @@ struct ReminderMappingTests {
 
 	@Test("A reminder with neither a due time nor an alarm never produces a reminder")
 	func dueTimeOrAlarmRequired() {
-		#expect(EventKitCalendarService.reminderEvent(from: makeReminder()) == nil)
+		#expect(ReminderEvent(makeReminder()) == nil)
 	}
 
 	@Test("A completed reminder never produces a reminder")
@@ -306,7 +306,7 @@ struct ReminderMappingTests {
 		let due = localDueDate(hour: 17, minute: 30)
 		let reminder = makeReminder(dueDateComponents: due.components, isCompleted: true)
 
-		#expect(EventKitCalendarService.reminderEvent(from: reminder) == nil)
+		#expect(ReminderEvent(reminder) == nil)
 	}
 
 	@Test("A due time fires at that single instant")
@@ -314,7 +314,7 @@ struct ReminderMappingTests {
 		let due = localDueDate(hour: 17, minute: 30)
 		let reminder = makeReminder(dueDateComponents: due.components)
 
-		let mapped = try #require(EventKitCalendarService.reminderEvent(from: reminder))
+		let mapped = try #require(ReminderEvent(reminder))
 		#expect(mapped.fireDates == [due.date])
 		#expect(mapped.isAllDay == false)
 		#expect(mapped.startDate == due.date)
@@ -326,7 +326,7 @@ struct ReminderMappingTests {
 		let due = localDueDate()
 		let reminder = makeReminder(dueDateComponents: due.components)
 
-		let mapped = try #require(EventKitCalendarService.reminderEvent(from: reminder))
+		let mapped = try #require(ReminderEvent(reminder))
 		let startOfDay = Calendar.current.startOfDay(for: due.date)
 		let midMorning = try #require(
 			Calendar.current.date(byAdding: .hour, value: 9, to: startOfDay)
@@ -342,7 +342,7 @@ struct ReminderMappingTests {
 		let alarmDate = alarmInstant.addingTimeInterval(-900)
 		let reminder = makeReminder(alarms: [EKAlarm(absoluteDate: alarmDate)])
 
-		let mapped = try #require(EventKitCalendarService.reminderEvent(from: reminder))
+		let mapped = try #require(ReminderEvent(reminder))
 		#expect(mapped.fireDates == [alarmDate])
 	}
 
@@ -354,7 +354,7 @@ struct ReminderMappingTests {
 			alarms: [EKAlarm(relativeOffset: -600)]
 		)
 
-		let mapped = try #require(EventKitCalendarService.reminderEvent(from: reminder))
+		let mapped = try #require(ReminderEvent(reminder))
 		#expect(mapped.fireDates == [due.date.addingTimeInterval(-600)])
 	}
 
@@ -367,7 +367,7 @@ struct ReminderMappingTests {
 			alarms: [EKAlarm(absoluteDate: alarmDate)]
 		)
 
-		let mapped = try #require(EventKitCalendarService.reminderEvent(from: reminder))
+		let mapped = try #require(ReminderEvent(reminder))
 		#expect(mapped.fireDates == [alarmDate])
 	}
 
@@ -375,18 +375,19 @@ struct ReminderMappingTests {
 	func relativeAlarmWithoutDueIsSkipped() {
 		let reminder = makeReminder(alarms: [EKAlarm(relativeOffset: -600)])
 
-		#expect(EventKitCalendarService.reminderEvent(from: reminder) == nil)
+		#expect(ReminderEvent(reminder) == nil)
 	}
 
-	@Test("The reminder's list, notes and colour are carried over")
+	@Test("The reminder's list and notes are carried over, but the list colour is not")
 	func copiesListAndNotes() throws {
 		let due = localDueDate(hour: 9)
 		let reminder = makeReminder(dueDateComponents: due.components, listTitle: "Errands")
 		reminder.notes = "  Take the blue bag  "
 
-		let mapped = try #require(EventKitCalendarService.reminderEvent(from: reminder))
+		let mapped = try #require(ReminderEvent(reminder))
 		#expect(mapped.calendar.title == "Errands")
-		#expect(mapped.calendar.color.red > 0.5)
+		// Every reminder list is shown with the same colour, whatever the list's own is.
+		#expect(mapped.calendar.color == CalendarInfo.reminderColor)
 		#expect(mapped.notes == "Take the blue bag")
 		#expect(mapped.location == nil)
 	}

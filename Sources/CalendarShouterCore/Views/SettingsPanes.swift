@@ -120,7 +120,6 @@ private struct ScrollEdgeObserver: NSViewRepresentable {
 
 		func refresh() {
 			attach()
-			keepOverlayScrollers(flashing: false)
 			updateScrollerVisibility()
 			publish()
 		}
@@ -144,30 +143,6 @@ private struct ScrollEdgeObserver: NSViewRepresentable {
 					MainActor.assumeIsolated { self?.publish() }
 				}
 			)
-			// AppKit re-derives a scroll view's style from the system preference whenever the
-			// window's key status changes, undoing the overlay style. Re-assert it, deferred
-			// by a run loop turn because AppKit applies its own change *after* posting the
-			// notification — asserting inside the handler is simply overwritten.
-			for name in [
-				NSWindow.didBecomeKeyNotification, NSWindow.didResignKeyNotification,
-				NSApplication.didBecomeActiveNotification, NSApplication.didResignActiveNotification,
-			] {
-				observers.append(
-					NotificationCenter.default.addObserver(
-						forName: name,
-						object: nil,
-						queue: .main
-					) { [weak self] _ in
-						MainActor.assumeIsolated {
-							guard let self else { return }
-							DispatchQueue.main.async { [weak self] in
-								MainActor.assumeIsolated { self?.keepOverlayScrollers(flashing: true) }
-							}
-						}
-					}
-				)
-			}
-			keepOverlayScrollers(flashing: false)
 			updateScrollerVisibility()
 			publish()
 		}
@@ -177,22 +152,6 @@ private struct ScrollEdgeObserver: NSViewRepresentable {
 			let isEnabled = !SettingsWindowResize.isAnimating
 			guard scrollView.hasVerticalScroller != isEnabled else { return }
 			scrollView.hasVerticalScroller = isEnabled
-		}
-
-		/// `flashing` is only for the focus-change re-assertions: those replace the scrollers
-		/// and leave the new ones hidden, so flashing them reads as the usual fade rather than
-		/// as the scroller vanishing. It is off when a pane first appears, where a flash would
-		/// be a visible flicker for no reason.
-		private func keepOverlayScrollers(flashing: Bool) {
-			guard let scrollView = observedClipView?.enclosingScrollView else { return }
-			guard scrollView.scrollerStyle != .overlay || !scrollView.autohidesScrollers else {
-				return
-			}
-			scrollView.scrollerStyle = .overlay
-			scrollView.autohidesScrollers = true
-			if flashing {
-				scrollView.flashScrollers()
-			}
 		}
 
 		/// Folds the flood of bounds notifications into one update per run loop turn: a

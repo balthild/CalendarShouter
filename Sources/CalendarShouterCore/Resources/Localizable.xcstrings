@@ -126,10 +126,13 @@
 			"extractionState": "manual",
 			"localizations": {
 				"en": {
-					"stringUnit": { "state": "translated", "value": "Show alerts from the “Reminders” app." }
+					"stringUnit": {
+						"state": "translated",
+						"value": "Enable alerts from the “Reminders” app."
+					}
 				},
 				"zh-Hans": {
-					"stringUnit": { "state": "translated", "value": "显示来自“提醒事项”应用的提醒" }
+					"stringUnit": { "state": "translated", "value": "启用来自“提醒事项”应用的提醒" }
 				}
 			}
 		},

@@ -29,10 +29,12 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
 		coordinator.start()
 
 		// Development aid: shows a reminder immediately so the panel can be checked.
-		if CommandLine.arguments.contains("--demo-reminder") {
+		if CommandLine.arguments.contains("--demo-calendar") {
+			coordinator.presentDemoCalendarEvent()
+		} else if CommandLine.arguments.contains("--demo-calendar-missed") {
+			coordinator.presentDemoCalendarMissedEvents()
+		} else if CommandLine.arguments.contains("--demo-reminder") {
 			coordinator.presentDemoReminder()
-		} else if CommandLine.arguments.contains("--demo-missed-reminders") {
-			coordinator.presentDemoMissedReminders()
 		}
 	}
 

@@ -58,7 +58,7 @@ struct ReminderView: View {
 	}
 
 	private func detailRow(systemImage: String, text: String) -> some View {
-		HStack(alignment: .firstTextBaseline, spacing: 8) {
+		HStack(alignment: .firstTextBaseline, spacing: 6) {
 			Image(systemName: systemImage)
 				.font(.callout)
 				.foregroundStyle(.secondary)
@@ -67,6 +67,7 @@ struct ReminderView: View {
 				.font(.callout)
 				.fixedSize(horizontal: false, vertical: true)
 		}
+		.padding(.leading, -1)
 	}
 
 	private func notesSection(_ notes: String) -> some View {
@@ -109,7 +110,7 @@ struct ReminderView: View {
 			.keyboardShortcut(.defaultAction)
 		}
 		.padding(.horizontal, 20)
-		.padding(.vertical, 14)
+		.padding(.vertical, 16)
 	}
 }
 
