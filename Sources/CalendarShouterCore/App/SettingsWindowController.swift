@@ -149,7 +149,7 @@ public final class SettingsWindowController: NSObject, NSToolbarDelegate {
 		// the window, which makes an overlay scroller appear and then vanish again once the
 		// animation finishes. The scrollers are held off until it has; the flag covers the
 		// pane's own scroll view, which SwiftUI only creates part-way through the animation.
-		SettingsWindowResize.isAnimating = true
+		let token = SettingsWindowResize.begin()
 		Self.setVerticalScrollersHidden(true, in: window.contentView)
 		NSAnimationContext.runAnimationGroup { context in
 			context.duration = 0.2
@@ -157,7 +157,9 @@ public final class SettingsWindowController: NSObject, NSToolbarDelegate {
 			window.animator().setFrame(targetFrame, display: true)
 		} completionHandler: {
 			MainActor.assumeIsolated {
-				SettingsWindowResize.isAnimating = false
+				// A superseded animation's completion must not re-show the scrollers while
+				// the current one is still animating.
+				guard SettingsWindowResize.end(token) else { return }
 				Self.setVerticalScrollersHidden(false, in: window.contentView)
 			}
 		}
