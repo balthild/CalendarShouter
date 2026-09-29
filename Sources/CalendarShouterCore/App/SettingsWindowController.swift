@@ -90,6 +90,10 @@ public final class SettingsWindowController: NSObject, NSToolbarDelegate {
 		// The custom item views draw their own labels, so the toolbar must not
 		// add one beneath them.
 		toolbar.displayMode = .iconOnly
+		if #available(macOS 15, *) {
+			toolbar.allowsDisplayModeCustomization = false
+		}
+
 		window.toolbar = toolbar
 		// The expanded style keeps the title bar at its normal height, so the
 		// traffic lights stay in the title bar, the title is visible, and the tab
