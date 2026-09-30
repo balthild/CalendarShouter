@@ -247,10 +247,6 @@ private struct ScrollEdgeObserver: NSViewRepresentable {
 struct SettingsForm<Content: View>: View {
 	@ViewBuilder var content: Content
 
-	/// Used to draw the separator one *physical* pixel tall, rather than one point (which
-	/// is two pixels on a Retina display).
-	@Environment(\.displayScale) private var displayScale
-
 	@State private var isScrolled = false
 
 	var body: some View {
@@ -259,7 +255,22 @@ struct SettingsForm<Content: View>: View {
 				.background { ScrollEdgeObserver(isScrolled: $isScrolled) }
 		}
 		.formStyle(.grouped)
-		.overlay(alignment: .top) {
+		.modifier(SettingsTopEdge(isScrolled: isScrolled))
+		.animation(.easeInOut(duration: 0.15), value: isScrolled)
+		.frame(maxWidth: .infinity)
+	}
+}
+
+/// The separator and scroll-edge shadow drawn along a pane's top edge.
+private struct SettingsTopEdge: ViewModifier {
+	let isScrolled: Bool
+
+	/// Used to draw the separator one *physical* pixel tall, rather than one point (which
+	/// is two pixels on a Retina display).
+	@Environment(\.displayScale) private var displayScale
+
+	func body(content: Content) -> some View {
+		content.overlay(alignment: .top) {
 			VStack(spacing: 0) {
 				Rectangle()
 					.fill(Color.primary.opacity(0.18))
@@ -278,8 +289,6 @@ struct SettingsForm<Content: View>: View {
 			}
 			.allowsHitTesting(false)
 		}
-		.animation(.easeInOut(duration: 0.15), value: isScrolled)
-		.frame(maxWidth: .infinity)
 	}
 }
 
@@ -288,67 +297,223 @@ struct SettingsForm<Content: View>: View {
 /// One tab, drawn as a toolbar item.
 ///
 /// The toolbar supplies the gaps between items itself, so none is added horizontally
-/// here; the vertical padding is this view's own, since the toolbar gives none.
-struct SettingsTabButton: View {
-	/// The button's content, excluding its vertical padding.
-	private static let contentSize = CGSize(width: 64, height: 48)
-	private static let bottomPadding: CGFloat = 2
+/// here; the bottom spacing is added by the view the toolbar item wraps around this button.
+///
+/// AppKit rather than SwiftUI: a SwiftUI button inside a toolbar item is fronted by a private
+/// `SwiftUI.KeyViewProxy`, whose focus the SwiftUI engine owns. Because every tab button reads
+/// the selection, changing panes redraws them all, which clears that focus — and the toolbar
+/// views are never linked into the content's key view loop, so Tab from the tab bar came to a
+/// dead end. A plain `NSButton` holds first responder itself, survives the pane change, and
+/// takes its place in the window's key view loop.
+final class SettingsTabButton: NSButton {
+	static let iconPointSize: CGFloat = 17
+	static let labelFontSize: CGFloat = 11
+	static let contentSpacing: CGFloat = 2
 
-	/// Total size, handed to the hosting view for the toolbar item.
-	static let size = CGSize(
-		width: contentSize.width,
-		height: contentSize.height + bottomPadding
-	)
+	static let cornerRadius: CGFloat = 7
+	static let bottomSpacing: CGFloat = 2
+
+	static let layoutSize = CGSize(width: 64, height: 48)
+	static let layoutRect = NSRect(origin: .zero, size: layoutSize)
 
 	let tab: SettingsTab
-	@Bindable var selection: SettingsSelection
 
-	@State private var isHovering = false
+	/// Called when the button is activated.
+	var onSelect: ((SettingsTab) -> Void)?
 
-	var body: some View {
-		Button {
-			selection.tab = tab
-		} label: {
-			VStack(spacing: 2) {
-				Image(systemName: tab.symbolName)
-					.font(.system(size: 17))
-				Text(localizable: tab.localizedLabel)
-					.font(.system(size: 11))
-			}
-			.frame(width: Self.contentSize.width, height: Self.contentSize.height)
-			.contentShape(Rectangle())
+	private var isSelected = false
+	private var isHovering = false
+	private var hoverTrackingArea: NSTrackingArea?
+
+	init(tab: SettingsTab) {
+		self.tab = tab
+
+		super.init(frame: Self.layoutRect)
+		isBordered = false
+
+		setButtonType(.momentaryChange)
+		setAccessibilityLabel(String(localizable: tab.localizedLabel))
+
+		target = self
+		action = #selector(activate)
+
+		// The tabs are one mutually exclusive choice, which AppKit represents as radio buttons —
+		// the same way `NSTabView`'s own tabs are exposed. `NSButton` answers accessibility
+		// queries through its cell (a view override is ignored), so role and value go there.
+		cell?.setAccessibilityRole(.radioButton)
+		cell?.setAccessibilityValue(0)
+
+		// The button draws its own pressed state; the cell's highlight would otherwise be drawn
+		// over the icon and label, washing them out instead of darkening the background.
+		(cell as? NSButtonCell)?.highlightsBy = []
+	}
+
+	@available(*, unavailable)
+	required init?(coder: NSCoder) {
+		fatalError("init(coder:) is not supported")
+	}
+
+	/// Updates the selected appearance, which the controller drives from the window's state.
+	func setSelected(_ selected: Bool) {
+		guard isSelected != selected else { return }
+
+		isSelected = selected
+		needsDisplay = true
+
+		// The state lives in the cell's accessibility value, as it does for AppKit's own radio
+		// buttons, so VoiceOver has to be told it changed.
+		cell?.setAccessibilityValue(selected ? 1 : 0)
+		NSAccessibility.post(element: self, notification: .valueChanged)
+	}
+
+	@objc private func activate() {
+		onSelect?(tab)
+	}
+
+	// The toolbar's background is draggable; a button that let the click through would turn a
+	// press-and-move on a tab into a window drag.
+	override var mouseDownCanMoveWindow: Bool { false }
+
+	// The button draws its own background, so it has no title or image for AppKit to measure;
+	// without this the toolbar sizes each item to nothing and the tabs pile up in the middle.
+	override var intrinsicContentSize: NSSize { Self.layoutSize }
+
+	// A borderless button refuses first responder unless Full Keyboard Access is on, which would
+	// take the tabs out of the key view loop for most users.
+	override var acceptsFirstResponder: Bool { true }
+
+	// Drawing is easier to reason about top-down: the icon is centred from the top edge.
+	override var isFlipped: Bool { true }
+
+	/// AppKit changes this while the button is pressed; the content colour follows it.
+	override var isHighlighted: Bool {
+		didSet { needsDisplay = true }
+	}
+
+	// MARK: - Drawing
+
+	override func draw(_ dirtyRect: NSRect) {
+		drawBackground()
+		drawContent()
+	}
+
+	private var foregroundColor: NSColor {
+		if isSelected {
+			return .controlAccentColor
 		}
-		.buttonStyle(SettingsTabButtonStyle(isSelected: selection.tab == tab, isHovering: isHovering))
-		// Without this the window's initial first responder draws a focus ring.
-		.focusEffectDisabled()
-		.onHover { isHovering = $0 }
-		.padding(.bottom, Self.bottomPadding)
-		.frame(width: Self.size.width, height: Self.size.height)
-		.accessibilityAddTraits(selection.tab == tab ? [.isSelected] : [])
-	}
-}
-
-private struct SettingsTabButtonStyle: ButtonStyle {
-	let isSelected: Bool
-	let isHovering: Bool
-
-	func makeBody(configuration: Configuration) -> some View {
-		configuration.label
-			.foregroundStyle(isSelected ? Color.accentColor : Color.secondary)
-			.background {
-				RoundedRectangle(cornerRadius: 7, style: .continuous)
-					.fill(background(isPressed: configuration.isPressed))
-			}
+		if isHighlighted {
+			return .secondaryLabelColor.blended(withFraction: 0.25, of: .labelColor)
+				?? .secondaryLabelColor
+		}
+		return .secondaryLabelColor
 	}
 
-	private func background(isPressed: Bool) -> Color {
-		if isPressed {
-			return Color.primary.opacity(0.14)
+	private var backgroundColor: NSColor? {
+		if isHighlighted {
+			return NSColor.labelColor.withAlphaComponent(0.14)
 		}
 		if isSelected || isHovering {
-			return Color.primary.opacity(0.07)
+			return NSColor.labelColor.withAlphaComponent(0.07)
 		}
-		return .clear
+		return nil
+	}
+
+	private func drawBackground() {
+		guard let color = backgroundColor else { return }
+		color.setFill()
+		NSBezierPath(
+			roundedRect: bounds,
+			xRadius: Self.cornerRadius,
+			yRadius: Self.cornerRadius
+		).fill()
+	}
+
+	/// The icon and label, stacked and centred in the content area.
+	private func drawContent() {
+		let icon = symbolImage()
+		let iconSize = icon.size
+
+		let text = labelText()
+		let textSize = text.size()
+
+		let contentHeight = iconSize.height + textSize.height + Self.contentSpacing
+
+		let iconRect = NSRect(
+			x: bounds.midX - iconSize.width / 2,
+			y: bounds.midY - contentHeight / 2,
+			width: iconSize.width,
+			height: iconSize.height
+		)
+
+		let textOrigin = NSPoint(
+			x: bounds.midX - textSize.width / 2,
+			y: iconRect.maxY + Self.contentSpacing,
+		)
+
+		icon.draw(in: iconRect)
+		text.draw(at: textOrigin)
+	}
+
+	private func labelText() -> NSAttributedString {
+		let label = String(localizable: tab.localizedLabel)
+		let attributes: [NSAttributedString.Key: Any] = [
+			.font: NSFont.systemFont(ofSize: Self.labelFontSize),
+			.foregroundColor: foregroundColor,
+		]
+		return NSAttributedString(string: label, attributes: attributes)
+	}
+
+	private func symbolImage() -> NSImage {
+		let configuration = NSImage.SymbolConfiguration(
+			pointSize: Self.iconPointSize,
+			weight: .regular
+		)
+		.applying(NSImage.SymbolConfiguration(paletteColors: [foregroundColor]))
+
+		let image = NSImage(systemSymbolName: tab.symbolName, accessibilityDescription: nil)?
+			.withSymbolConfiguration(configuration)
+		image?.isTemplate = false
+
+		return image ?? NSImage(size: .zero)
+	}
+
+	// MARK: - Focus ring
+
+	override var focusRingMaskBounds: NSRect { bounds }
+
+	override func drawFocusRingMask() {
+		NSBezierPath(
+			roundedRect: bounds,
+			xRadius: Self.cornerRadius,
+			yRadius: Self.cornerRadius
+		).fill()
+	}
+
+	// MARK: - Hover
+
+	override func updateTrackingAreas() {
+		super.updateTrackingAreas()
+		if let hoverTrackingArea {
+			removeTrackingArea(hoverTrackingArea)
+		}
+		let area = NSTrackingArea(
+			rect: .zero,
+			options: [.mouseEnteredAndExited, .activeInKeyWindow, .inVisibleRect],
+			owner: self,
+			userInfo: nil
+		)
+		addTrackingArea(area)
+		hoverTrackingArea = area
+	}
+
+	override func mouseEntered(with event: NSEvent) {
+		isHovering = true
+		needsDisplay = true
+	}
+
+	override func mouseExited(with event: NSEvent) {
+		isHovering = false
+		needsDisplay = true
 	}
 }
 
@@ -510,28 +675,33 @@ struct CalendarsSettingsPane: View {
 	}
 
 	private var accessPrompt: some View {
-		VStack(spacing: 12) {
-			Text(localizable: .calendarAccessRequired)
-				.multilineTextAlignment(.center)
-
-			if calendarService.authorization == .denied
-				|| calendarService.authorization == .restricted
-			{
-				Text(localizable: .calendarAccessDenied)
-					.font(.footnote)
-					.foregroundStyle(.secondary)
+		// A grouped form like every other pane state. The toolbar only draws its opaque material
+		// when something opaque sits behind the pane's scroll view: a plain `ScrollView`, a
+		// `.columns` form, or a hidden scroll content background all leave it translucent instead.
+		SettingsForm {
+			VStack(spacing: 12) {
+				Text(localizable: .calendarAccessRequired)
 					.multilineTextAlignment(.center)
-				Button(action: onOpenPrivacySettings) {
-					Text(localizable: .openSystemSettings)
-				}
-			} else {
-				Button(action: onRequestAccess) {
-					Text(localizable: .grantAccess)
+
+				if calendarService.authorization == .denied
+					|| calendarService.authorization == .restricted
+				{
+					Text(localizable: .calendarAccessDenied)
+						.font(.footnote)
+						.foregroundStyle(.secondary)
+						.multilineTextAlignment(.center)
+					Button(action: onOpenPrivacySettings) {
+						Text(localizable: .openSystemSettings)
+					}
+				} else {
+					Button(action: onRequestAccess) {
+						Text(localizable: .grantAccess)
+					}
 				}
 			}
+			.frame(maxWidth: .infinity)
+			.padding(.vertical, 32)
 		}
-		.frame(maxWidth: .infinity)
-		.padding(32)
 	}
 
 	private func binding(for calendar: CalendarInfo) -> Binding<Bool> {
@@ -562,7 +732,6 @@ private struct CalendarCheckboxToggleStyle: ToggleStyle {
 			.contentShape(Rectangle())
 		}
 		.buttonStyle(.plain)
-		.focusEffectDisabled()
 		.accessibilityAddTraits(configuration.isOn ? [.isSelected] : [])
 	}
 

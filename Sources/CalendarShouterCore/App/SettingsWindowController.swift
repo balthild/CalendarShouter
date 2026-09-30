@@ -20,6 +20,7 @@ public final class SettingsWindowController: NSObject, NSToolbarDelegate {
 
 	private var window: NSWindow?
 	private var isPresented = false
+	private var tabButtons: [SettingsTab: SettingsTabButton] = [:]
 	nonisolated(unsafe) private var closeObserver: NSObjectProtocol?
 
 	public init(
@@ -57,7 +58,27 @@ public final class SettingsWindowController: NSObject, NSToolbarDelegate {
 		}
 
 		NSApp.activate(ignoringOtherApps: true)
+		let wasVisible = window.isVisible
 		window.makeKeyAndOrderFront(nil)
+		if !wasVisible {
+			clearInitialFocus(in: window)
+		}
+	}
+
+	/// Leaves the window, rather than a control, as the first responder when it appears.
+	///
+	/// As SwiftUI installs the pane it hands first responder to the pane's first control,
+	/// which draws that control's focus ring before the user has touched the keyboard. AppKit
+	/// itself reserves the ring for keyboard navigation, so the ring comes back on the first
+	/// Tab — this only removes the ring nothing asked for. Cleared on the next run loop turn,
+	/// since SwiftUI sets the responder after `makeKeyAndOrderFront` returns.
+	private func clearInitialFocus(in window: NSWindow) {
+		DispatchQueue.main.async { [weak window] in
+			MainActor.assumeIsolated {
+				guard let window, window.isVisible else { return }
+				_ = window.makeFirstResponder(nil)
+			}
+		}
 	}
 
 	/// The settings window, once it has been created; used to host sheets.
@@ -107,7 +128,10 @@ public final class SettingsWindowController: NSObject, NSToolbarDelegate {
 
 		window.contentView = NSHostingView(rootView: makeContent(selection))
 		window.setContentSize(contentSize(for: selection.tab))
-		selection.onTabChange = { [weak self] _ in self?.resizeToFitCurrentPane() }
+		selection.onTabChange = { [weak self] _ in
+			self?.updateTabButtons()
+			self?.resizeToFitCurrentPane()
+		}
 
 		closeObserver = NotificationCenter.default.addObserver(
 			forName: NSWindow.willCloseNotification,
@@ -223,31 +247,36 @@ public final class SettingsWindowController: NSObject, NSToolbarDelegate {
 	) -> NSToolbarItem? {
 		guard let tab = SettingsTab.from(toolbarItemIdentifier: identifier) else { return nil }
 
+		let button = SettingsTabButton(tab: tab)
+		button.translatesAutoresizingMaskIntoConstraints = false
+		button.setSelected(tab == selection.tab)
+		button.onSelect = { [weak self] tab in self?.selection.tab = tab }
+		tabButtons[tab] = button
+
+		let container = NSView()
+		container.translatesAutoresizingMaskIntoConstraints = false
+		container.addSubview(button)
+		NSLayoutConstraint.activate([
+			container.leadingAnchor.constraint(equalTo: button.leadingAnchor),
+			container.trailingAnchor.constraint(equalTo: button.trailingAnchor),
+			container.topAnchor.constraint(equalTo: button.topAnchor),
+			container.bottomAnchor.constraint(
+				equalTo: button.bottomAnchor,
+				constant: SettingsTabButton.bottomSpacing
+			),
+		])
+
 		let item = NSToolbarItem(itemIdentifier: identifier)
 		item.label = String(localizable: tab.localizedLabel)
-		let button = NonDraggableHostingView(
-			rootView: SettingsTabButton(tab: tab, selection: selection)
-		)
-		button.frame = NSRect(origin: .zero, size: SettingsTabButton.size)
-		item.view = button
+		item.view = container
+
 		return item
 	}
-}
 
-/// A hosting view that does not start a window drag.
-///
-/// The toolbar's background is draggable, and a view placed in it passes the click on
-/// unless it opts out — which would turn a press-and-move on a tab into a window drag
-/// instead of a button click. Opting out keeps the buttons behaving as buttons while
-/// the rest of the tab bar still moves the window.
-private final class NonDraggableHostingView<Content: View>: NSHostingView<Content> {
-	override var mouseDownCanMoveWindow: Bool { false }
-
-	@MainActor required init(rootView: Content) {
-		super.init(rootView: rootView)
-	}
-
-	@MainActor @preconcurrency required dynamic init?(coder: NSCoder) {
-		fatalError("init(coder:) is not supported")
+	/// Keeps the toolbar buttons' selected appearance in step with the current pane.
+	private func updateTabButtons() {
+		for (tab, button) in tabButtons {
+			button.setSelected(tab == selection.tab)
+		}
 	}
 }
