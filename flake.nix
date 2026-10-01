@@ -10,13 +10,12 @@
     flake-parts.inputs.nixpkgs-lib.follows = "nixpkgs";
   };
 
-  outputs =
-    inputs@{ flake-parts, ... }:
+  outputs = inputs@{ flake-parts, ... }:
     flake-parts.lib.mkFlake { inherit inputs; } {
       # macOS only: the helper links against the Security framework.
       systems = [ "aarch64-darwin" ];
 
-      perSystem = { pkgs, ... }: rec {
+      perSystem = { pkgs, config, ... }: {
         packages.keychain-helper = pkgs.stdenv.mkDerivation {
           pname = "CalendarShouterKeychainHelper";
           version = "1.0";
@@ -52,7 +51,7 @@
           '';
         };
 
-        packages.default = packages.keychain-helper;
+        packages.default = config.packages.keychain-helper;
       };
     };
 }

@@ -103,7 +103,7 @@ HELPER_CDHASH := 559514fceee8a1c783543c1bd5b7a4c42e4b2611
 
 help: ## Show this help.
 	@printf '%s\n' "CalendarShouter $(VERSION) — available targets:"
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-11s\033[0m %s\n", $$1, $$2}'
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%s\t\033[0m %s\n", $$1, $$2}' | column -t -s $$'\t'
 
 format: ## Format Swift sources in place.
 	dprint fmt
@@ -220,13 +220,13 @@ notarize: ## Notarize and staple the packaged app (requires Developer ID + NOTAR
 run: sign ## Build, bundle and launch the app.
 	open "$(APP_BUNDLE)"
 
-demo: sign ## Launch the app with a synthetic calendar reminder, to inspect the panel.
+demo: sign ## Show a demo calendar reminder to inspect the panel.
 	open -n "$(APP_BUNDLE)" --args --demo-calendar
 
-demo-missed: sign ## Launch the app with a synthetic missed calendar-reminder backlog, to inspect the summary panel.
+demo-missed: sign ## Show a demo missed calendar reminder backlog to inspect the summary panel.
 	open -n "$(APP_BUNDLE)" --args --demo-calendar-missed
 
-demo-reminder: sign ## Launch the app with synthetic Reminders-app reminders, to inspect the panel.
+demo-reminder: sign ## Show a demo Reminders-app reminder to inspect the panel.
 	open -n "$(APP_BUNDLE)" --args --demo-reminder
 
 dev: localize ## Run without bundling. Calendar access and the login item do not work.
