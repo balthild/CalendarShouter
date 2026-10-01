@@ -1,6 +1,37 @@
 {
 	"sourceLanguage": "en",
 	"strings": {
+		"aboutCopyright": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": {
+					"stringUnit": {
+						"state": "translated",
+						"value": "Copyright © 2026 Balthild. Released under the GNU Affero General Public License v3.0 (AGPL-3.0)."
+					}
+				},
+				"zh-Hans": {
+					"stringUnit": {
+						"state": "translated",
+						"value": "版权所有 © 2026 Balthild。本项目基于 GNU Affero General Public License 3.0 (AGPL-3.0) 许可协议发布。"
+					}
+				}
+			}
+		},
+		"aboutMadeBy": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": { "stringUnit": { "state": "translated", "value": "Made by %@" } },
+				"zh-Hans": { "stringUnit": { "state": "translated", "value": "由 %@ 制作" } }
+			}
+		},
+		"aboutVersion": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": { "stringUnit": { "state": "translated", "value": "Version %@ (%@)" } },
+				"zh-Hans": { "stringUnit": { "state": "translated", "value": "版本：%@（%@）" } }
+			}
+		},
 		"allDay": {
 			"extractionState": "manual",
 			"localizations": {
@@ -786,6 +817,13 @@
 			"localizations": {
 				"en": { "stringUnit": { "state": "translated", "value": "Snooze All" } },
 				"zh-Hans": { "stringUnit": { "state": "translated", "value": "全部稍后提醒" } }
+			}
+		},
+		"tabAbout": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": { "stringUnit": { "state": "translated", "value": "About" } },
+				"zh-Hans": { "stringUnit": { "state": "translated", "value": "关于" } }
 			}
 		},
 		"tabCalendars": {

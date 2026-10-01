@@ -5,6 +5,7 @@ public enum SettingsTab: String, CaseIterable, Identifiable {
 	case general
 	case calendars
 	case canvas
+	case about
 
 	public var id: String { rawValue }
 
@@ -13,6 +14,7 @@ public enum SettingsTab: String, CaseIterable, Identifiable {
 		case .general: .tabGeneral
 		case .calendars: .tabCalendars
 		case .canvas: .tabCanvas
+		case .about: .tabAbout
 		}
 	}
 
@@ -21,6 +23,7 @@ public enum SettingsTab: String, CaseIterable, Identifiable {
 		case .general: "gearshape"
 		case .calendars: "calendar"
 		case .canvas: "graduationcap"
+		case .about: "info.circle"
 		}
 	}
 

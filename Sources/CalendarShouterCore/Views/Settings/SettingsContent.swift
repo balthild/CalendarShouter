@@ -32,6 +32,8 @@ struct SettingsContent: View {
 			)
 		case .canvas:
 			CanvasSettingsPane(store: store, canvasService: canvasService)
+		case .about:
+			AboutSettingsPane()
 		}
 	}
 }
