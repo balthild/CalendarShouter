@@ -112,8 +112,8 @@ public final class CanvasService: CanvasServicing {
 			userName: result.user.name,
 			addedAt: Date()
 		)
-		try secrets.setValue(pending.credentials, for: SecretKey.Item.client(accountID: account.id))
-		try secrets.setValue(result.tokens, for: SecretKey.Item.tokens(accountID: account.id))
+		try secrets.setValue(pending.credentials, for: SecretKey.client(accountID: account.id))
+		try secrets.setValue(result.tokens, for: SecretKey.tokens(accountID: account.id))
 
 		settings.canvasAccounts.removeAll { $0.id == account.id }
 		settings.canvasAccounts.append(account)
@@ -125,8 +125,8 @@ public final class CanvasService: CanvasServicing {
 
 	public func removeAccount(_ account: CanvasAccount) {
 		settings.canvasAccounts.removeAll { $0.id == account.id }
-		try? secrets.removeValue(for: SecretKey.Item.tokens(accountID: account.id))
-		try? secrets.removeValue(for: SecretKey.Item.client(accountID: account.id))
+		try? secrets.removeValue(for: SecretKey.tokens(accountID: account.id))
+		try? secrets.removeValue(for: SecretKey.client(accountID: account.id))
 
 		courses.removeAll { $0.accountID == account.id }
 		assignments.removeAll { $0.course.accountID == account.id }
@@ -236,7 +236,7 @@ public final class CanvasService: CanvasServicing {
 		guard
 			let tokens = try secrets.value(
 				CanvasTokens.self,
-				for: SecretKey.Item.tokens(accountID: account.id)
+				for: SecretKey.tokens(accountID: account.id)
 			)
 		else { throw SignInError.notSignedIn }
 
@@ -250,11 +250,11 @@ public final class CanvasService: CanvasServicing {
 		guard
 			let tokens = try secrets.value(
 				CanvasTokens.self,
-				for: SecretKey.Item.tokens(accountID: account.id)
+				for: SecretKey.tokens(accountID: account.id)
 			),
 			let credentials = try secrets.value(
 				CanvasClientCredentials.self,
-				for: SecretKey.Item.client(accountID: account.id)
+				for: SecretKey.client(accountID: account.id)
 			)
 		else { throw SignInError.notSignedIn }
 
@@ -263,7 +263,7 @@ public final class CanvasService: CanvasServicing {
 			refreshToken: tokens.refreshToken,
 			baseURL: account.baseURL
 		)
-		try secrets.setValue(refreshed, for: SecretKey.Item.tokens(accountID: account.id))
+		try secrets.setValue(refreshed, for: SecretKey.tokens(accountID: account.id))
 		return refreshed.accessToken
 	}
 

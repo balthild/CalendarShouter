@@ -34,13 +34,9 @@ extension SecretStore {
 /// The secrets live in the keychain, but the app never touches it directly: the helper does
 /// (see `KeychainHelperClient`). All this names is the keys, so that the caller and the
 /// helper agree on them.
-public enum SecretKey {}
-
-extension SecretKey {
-	public enum Item {
-		/// The account's access and refresh tokens.
-		public static func tokens(accountID: String) -> String { "canvas.token.\(accountID)" }
-		/// The OAuth client credentials issued for the account's domain.
-		public static func client(accountID: String) -> String { "canvas.client.\(accountID)" }
-	}
+public enum SecretKey {
+	/// The account's access and refresh tokens.
+	public static func tokens(accountID: String) -> String { "canvas.token.\(accountID)" }
+	/// The OAuth client credentials issued for the account's domain.
+	public static func client(accountID: String) -> String { "canvas.client.\(accountID)" }
 }

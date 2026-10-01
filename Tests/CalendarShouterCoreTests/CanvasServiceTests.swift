@@ -153,11 +153,11 @@ private func addAccount(
 	settings.canvasAccounts.append(account)
 	try secrets.setValue(
 		CanvasTokens(accessToken: accessToken, refreshToken: "rt", expiresAt: .distantFuture),
-		for: SecretKey.Item.tokens(accountID: id)
+		for: SecretKey.tokens(accountID: id)
 	)
 	try secrets.setValue(
 		CanvasClientCredentials(clientID: "1", clientSecret: "s"),
-		for: SecretKey.Item.client(accountID: id)
+		for: SecretKey.client(accountID: id)
 	)
 	return account
 }
@@ -213,8 +213,8 @@ struct CanvasServiceTests {
 		#expect(account.domain == "canvas.example.edu")
 		#expect(account.userName == "Student")
 		#expect(settings.canvasAccounts.map(\.id) == [account.id])
-		#expect(secrets.contains(SecretKey.Item.tokens(accountID: account.id)))
-		#expect(secrets.contains(SecretKey.Item.client(accountID: account.id)))
+		#expect(secrets.contains(SecretKey.tokens(accountID: account.id)))
+		#expect(secrets.contains(SecretKey.client(accountID: account.id)))
 
 		// The account itself must carry no secrets into the preferences file.
 		let stored = String(decoding: defaults.data(forKey: "canvasAccounts") ?? Data(), as: UTF8.self)
@@ -256,11 +256,11 @@ struct CanvasServiceTests {
 		let accountID = "acc-1"
 		try secrets.setValue(
 			CanvasTokens(accessToken: "old", refreshToken: "rt", expiresAt: .distantFuture),
-			for: SecretKey.Item.tokens(accountID: accountID)
+			for: SecretKey.tokens(accountID: accountID)
 		)
 		try secrets.setValue(
 			CanvasClientCredentials(clientID: "1", clientSecret: "s"),
-			for: SecretKey.Item.client(accountID: accountID)
+			for: SecretKey.client(accountID: accountID)
 		)
 		settings.canvasAccounts = [
 			CanvasAccount(
@@ -292,11 +292,11 @@ struct CanvasServiceTests {
 		let accountID = "acc-1"
 		try secrets.setValue(
 			CanvasTokens(accessToken: "old", refreshToken: "rt", expiresAt: .distantFuture),
-			for: SecretKey.Item.tokens(accountID: accountID)
+			for: SecretKey.tokens(accountID: accountID)
 		)
 		try secrets.setValue(
 			CanvasClientCredentials(clientID: "1", clientSecret: "s"),
-			for: SecretKey.Item.client(accountID: accountID)
+			for: SecretKey.client(accountID: accountID)
 		)
 		settings.canvasAccounts = [
 			CanvasAccount(
@@ -381,7 +381,7 @@ struct CanvasServiceTests {
 		#expect(settings.canvasAccounts.isEmpty)
 		#expect(service.courses.isEmpty)
 		#expect(settings.enabledCanvasCourseIDs.isEmpty)
-		#expect(!secrets.contains(SecretKey.Item.tokens(accountID: account.id)))
+		#expect(!secrets.contains(SecretKey.tokens(accountID: account.id)))
 		#expect(service.reminders(from: date(2026, 3, 1), to: date(2026, 4, 1)).isEmpty)
 	}
 }
