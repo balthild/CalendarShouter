@@ -384,6 +384,74 @@ struct CanvasServiceTests {
 		#expect(!secrets.contains(SecretKey.tokens(accountID: account.id)))
 		#expect(service.reminders(from: date(2026, 3, 1), to: date(2026, 4, 1)).isEmpty)
 	}
+
+	@Test("A refresh that cannot read an account's token keeps its course selection")
+	func failedRefreshKeepsCourseSelection() async throws {
+		let settings = SettingsStore(defaults: makeDefaults())
+		let secrets = InMemorySecretStore()
+		let api = FakeCanvasAPI()
+		api.courseRecords = [CanvasCourseRecord(id: "1", name: "Algorithms", courseCode: nil)]
+
+		try addAccount(to: settings, secrets: secrets)
+		let service = makeService(api: api, settings: settings, secrets: secrets)
+		service.refresh()
+		await service.currentRefresh?.value
+		settings.setCanvasReminderEnabled(true, forCourseID: "acc-1:1")
+
+		// The keychain loses the token, as it does when one is deleted by hand.
+		try secrets.removeValue(for: SecretKey.tokens(accountID: "acc-1"))
+		service.refresh()
+		await service.currentRefresh?.value
+
+		#expect(service.needsReauthentication.contains("acc-1"))
+		#expect(settings.isCanvasReminderEnabled(forCourseID: "acc-1:1"))
+	}
+
+	@Test("A course a refreshed account no longer lists is dropped from the selection")
+	func removedCourseIsPruned() async throws {
+		let settings = SettingsStore(defaults: makeDefaults())
+		let secrets = InMemorySecretStore()
+		let api = FakeCanvasAPI()
+		api.courseRecords = [CanvasCourseRecord(id: "1", name: "Algorithms", courseCode: nil)]
+
+		try addAccount(to: settings, secrets: secrets)
+		let service = makeService(api: api, settings: settings, secrets: secrets)
+		service.refresh()
+		await service.currentRefresh?.value
+		settings.setCanvasReminderEnabled(true, forCourseID: "acc-1:1")
+
+		api.courseRecords = []
+		service.refresh()
+		await service.currentRefresh?.value
+
+		#expect(!settings.isCanvasReminderEnabled(forCourseID: "acc-1:1"))
+	}
+
+	@Test("A refresh that cannot read an account keeps its cached courses and reminders")
+	func failedRefreshKeepsCache() async throws {
+		let settings = SettingsStore(defaults: makeDefaults())
+		settings.canvasReminderRules = [CanvasReminderRule(kind: .beforeDue, minutes: 60)]
+		let secrets = InMemorySecretStore()
+		let api = FakeCanvasAPI()
+		api.courseRecords = [CanvasCourseRecord(id: "1", name: "Algorithms", courseCode: nil)]
+		api.assignmentRecords = [makeRecord()]
+
+		try addAccount(to: settings, secrets: secrets)
+		let service = makeService(api: api, settings: settings, secrets: secrets)
+
+		service.refresh()
+		await service.currentRefresh?.value
+		#expect(service.courses(forAccountID: "acc-1").count == 1)
+
+		// The keychain loses the token, as it does when one is deleted by hand.
+		try secrets.removeValue(for: SecretKey.tokens(accountID: "acc-1"))
+		service.refresh()
+		await service.currentRefresh?.value
+
+		#expect(service.needsReauthentication.contains("acc-1"))
+		#expect(service.courses(forAccountID: "acc-1").map(\.name) == ["Algorithms"])
+		#expect(service.reminders(from: date(2026, 3, 1), to: date(2026, 4, 1)).count == 1)
+	}
 }
 
 /// Canvas as the scheduler sees it: a bag of prepared reminder events.

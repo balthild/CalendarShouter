@@ -158,6 +158,7 @@ public final class CanvasService: CanvasServicing {
 		var fetchedCourses: [CanvasCourse] = []
 		var fetchedAssignments: [CanvasAssignment] = []
 		var needingSignIn: Set<String> = []
+		var refreshedAccounts: Set<String> = []
 
 		for account in settings.canvasAccounts {
 			do {
@@ -174,6 +175,7 @@ public final class CanvasService: CanvasServicing {
 				}
 				fetchedCourses.append(contentsOf: accountCourses)
 
+				var accountAssignments: [CanvasAssignment] = []
 				for course in accountCourses {
 					let assignmentRecords = try await withValidToken(for: account) { token in
 						try await self.api.assignments(
@@ -182,7 +184,7 @@ public final class CanvasService: CanvasServicing {
 							baseURL: account.baseURL
 						)
 					}
-					fetchedAssignments.append(
+					accountAssignments.append(
 						contentsOf: assignmentRecords.map { record in
 							CanvasAssignment(
 								id: "\(course.id):\(record.id)",
@@ -198,6 +200,8 @@ public final class CanvasService: CanvasServicing {
 						}
 					)
 				}
+				fetchedAssignments.append(contentsOf: accountAssignments)
+				refreshedAccounts.insert(account.id)
 			} catch CanvasAPIError.http(let status, _) where status == 401 || status == 403 {
 				needingSignIn.insert(account.id)
 			} catch is SignInError {
@@ -209,12 +213,41 @@ public final class CanvasService: CanvasServicing {
 
 		guard generation == self.generation else { return }
 
+		// An account that could not be read keeps whatever it had last time, so a failed
+		// sign-in does not silently empty its reminders until the next successful refresh.
+		for account in settings.canvasAccounts where !refreshedAccounts.contains(account.id) {
+			fetchedCourses.append(contentsOf: courses.filter { $0.accountID == account.id })
+			fetchedAssignments.append(
+				contentsOf: assignments.filter { $0.course.accountID == account.id }
+			)
+		}
+
 		courses = fetchedCourses
 		assignments = fetchedAssignments
 		needsReauthentication = needingSignIn
-		settings.pruneCanvasCourseSelection(keeping: Set(fetchedCourses.map(\.id)))
+		settings.pruneCanvasCourseSelection(
+			keeping: retainedCourseSelection(
+				fetchedCourseIDs: Set(fetchedCourses.map(\.id)),
+				refreshedAccounts: refreshedAccounts
+			)
+		)
 		isRefreshing = false
 		onChange?()
+	}
+
+	/// The course selection to keep after a refresh.
+	///
+	/// A course is only gone if its own account refreshed without it. An account whose
+	/// refresh failed keeps its selections, so that signing in again does not find every
+	/// course switched off.
+	private func retainedCourseSelection(
+		fetchedCourseIDs: Set<String>,
+		refreshedAccounts: Set<String>
+	) -> Set<String> {
+		settings.enabledCanvasCourseIDs.filter { identifier in
+			let ownerRefreshed = refreshedAccounts.contains { identifier.hasPrefix("\($0):") }
+			return !ownerRefreshed || fetchedCourseIDs.contains(identifier)
+		}
 	}
 
 	// MARK: - Tokens
