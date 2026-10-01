@@ -35,9 +35,9 @@ struct SettingsSelectionTests {
 		var reported: [SettingsTab] = []
 		selection.onTabChange = { reported.append($0) }
 
-		selection.tab = .sound
+		selection.tab = .canvas
 
-		#expect(reported == [.sound])
+		#expect(reported == [.canvas])
 	}
 
 	@Test("Setting the same tab again does not report a change")

@@ -8,6 +8,7 @@ import SwiftUI
 public final class AppCoordinator {
 	private let settings: SettingsStore
 	private let calendarService: EventKitCalendarService
+	private let canvasService: CanvasService
 	private let scheduler: ReminderScheduler
 	private let soundPlayer: SoundPlayer
 	private let soundCatalog: SoundCatalog
@@ -52,16 +53,22 @@ public final class AppCoordinator {
 	public init(singleInstance: SingleInstanceController, defaults: UserDefaults = .standard) {
 		let settings = SettingsStore(defaults: defaults)
 		let calendarService = EventKitCalendarService()
+		let canvasService = CanvasService(
+			api: URLSessionCanvasAPIClient(),
+			settings: settings
+		)
 
 		self.singleInstance = singleInstance
 		self.settings = settings
 		self.calendarService = calendarService
+		self.canvasService = canvasService
 		self.soundPlayer = SoundPlayer()
 		self.soundCatalog = SoundCatalog()
 		self.loginItemController = LoginItemController()
 		self.scheduler = ReminderScheduler(
 			service: calendarService,
 			settings: settings,
+			canvas: canvasService,
 			defaults: defaults
 		)
 	}
@@ -81,6 +88,7 @@ public final class AppCoordinator {
 		observeSystemEvents()
 
 		calendarService.onChange = { [weak self] in self?.scheduler.reload() }
+		canvasService.onChange = { [weak self] in self?.scheduler.reload() }
 		scheduler.onFire = { [weak self] fires in self?.present(fires) }
 		loginItemController.onApprovalRequired = { [weak self] in
 			self?.presentLoginItemApprovalAlert()
@@ -91,6 +99,7 @@ public final class AppCoordinator {
 
 		applySettings()
 		scheduler.reload()
+		canvasService.refresh()
 		requestCalendarAccessIfNeeded()
 		requestRemindersAccessIfNeeded()
 	}
@@ -98,6 +107,7 @@ public final class AppCoordinator {
 	/// Brings the settings window to the front.
 	public func showSettings() {
 		calendarService.refresh()
+		canvasService.refresh()
 		loginItemController.refresh()
 		settingsWindowController.show()
 	}
@@ -240,6 +250,8 @@ public final class AppCoordinator {
 			_ = settings.enabledCalendarIDs
 			_ = settings.includeReminders
 			_ = settings.soundName
+			_ = settings.canvasReminderRules
+			_ = settings.enabledCanvasCourseIDs
 		} onChange: { [weak self] in
 			Task { @MainActor [weak self] in
 				self?.applySettings()
@@ -416,13 +428,19 @@ public final class AppCoordinator {
 				object: nil,
 				queue: .main
 			) { _ in
-				MainActor.assumeIsolated { reload() }
+				MainActor.assumeIsolated {
+					reload()
+					self.canvasService.refresh()
+				}
 			}
 		)
 
 		// Keeps the look-ahead window rolling even if no system event occurs.
 		let timer = Timer(timeInterval: 3600, repeats: true) { _ in
-			MainActor.assumeIsolated { reload() }
+			MainActor.assumeIsolated {
+				reload()
+				self.canvasService.refresh()
+			}
 		}
 		timer.tolerance = 60
 		RunLoop.main.add(timer, forMode: .common)
@@ -439,6 +457,7 @@ public final class AppCoordinator {
 				store: settings,
 				loginItemController: loginItemController,
 				calendarService: calendarService,
+				canvasService: canvasService,
 				soundCatalog: soundCatalog,
 				onRequestCalendarAccess: { [weak self] in self?.requestCalendarAccess() },
 				onOpenCalendarPrivacySettings: { Self.openCalendarPrivacySettings() },

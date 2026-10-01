@@ -42,6 +42,368 @@
 				}
 			}
 		},
+		"canvasAccountColumn": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": { "stringUnit": { "state": "translated", "value": "Account" } },
+				"zh-Hans": { "stringUnit": { "state": "translated", "value": "账户" } }
+			}
+		},
+		"canvasAccountsHeader": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": { "stringUnit": { "state": "translated", "value": "Accounts" } },
+				"zh-Hans": { "stringUnit": { "state": "translated", "value": "账户" } }
+			}
+		},
+		"canvasAddAccount": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": { "stringUnit": { "state": "translated", "value": "Add Account…" } },
+				"zh-Hans": { "stringUnit": { "state": "translated", "value": "添加账户…" } }
+			}
+		},
+		"canvasAddAccountPrompt": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": {
+					"stringUnit": {
+						"state": "translated",
+						"value": "Enter your school's Canvas address."
+					}
+				},
+				"zh-Hans": {
+					"stringUnit": {
+						"state": "translated",
+						"value": "请输入你所在学校的 Canvas 地址。"
+					}
+				}
+			}
+		},
+		"canvasAddReminderRule": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": { "stringUnit": { "state": "translated", "value": "Add Reminder Time…" } },
+				"zh-Hans": { "stringUnit": { "state": "translated", "value": "添加提醒时间…" } }
+			}
+		},
+		"canvasAuthorizeInstruction": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": {
+					"stringUnit": {
+						"state": "translated",
+						"value": "Sign in to your Canvas account to allow access."
+					}
+				},
+				"zh-Hans": {
+					"stringUnit": {
+						"state": "translated",
+						"value": "请登录你的 Canvas 账户以授权访问。"
+					}
+				}
+			}
+		},
+		"canvasCancel": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": { "stringUnit": { "state": "translated", "value": "Cancel" } },
+				"zh-Hans": { "stringUnit": { "state": "translated", "value": "取消" } }
+			}
+		},
+		"canvasContinue": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": { "stringUnit": { "state": "translated", "value": "Continue" } },
+				"zh-Hans": { "stringUnit": { "state": "translated", "value": "继续" } }
+			}
+		},
+		"canvasDomainColumn": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": { "stringUnit": { "state": "translated", "value": "Site" } },
+				"zh-Hans": { "stringUnit": { "state": "translated", "value": "站点" } }
+			}
+		},
+		"canvasDurationDays": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": { "stringUnit": { "state": "translated", "value": "%lld d" } },
+				"zh-Hans": { "stringUnit": { "state": "translated", "value": "%lld 天" } }
+			}
+		},
+		"canvasDurationHours": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": { "stringUnit": { "state": "translated", "value": "%lld hr" } },
+				"zh-Hans": { "stringUnit": { "state": "translated", "value": "%lld 小时" } }
+			}
+		},
+		"canvasDurationMinutes": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": { "stringUnit": { "state": "translated", "value": "%lld min" } },
+				"zh-Hans": { "stringUnit": { "state": "translated", "value": "%lld 分钟" } }
+			}
+		},
+		"canvasEnableCourses": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": { "stringUnit": { "state": "translated", "value": "Courses" } },
+				"zh-Hans": { "stringUnit": { "state": "translated", "value": "课程" } }
+			}
+		},
+		"canvasErrorDomain": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": {
+					"stringUnit": {
+						"state": "translated",
+						"value": "That address is not a Canvas site with mobile access enabled."
+					}
+				},
+				"zh-Hans": {
+					"stringUnit": {
+						"state": "translated",
+						"value": "该地址不是启用了移动访问的 Canvas 站点。"
+					}
+				}
+			}
+		},
+		"canvasErrorGeneric": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": {
+					"stringUnit": {
+						"state": "translated",
+						"value": "Something went wrong. Please try again."
+					}
+				},
+				"zh-Hans": { "stringUnit": { "state": "translated", "value": "出现问题，请重试。" } }
+			}
+		},
+		"canvasErrorServer": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": {
+					"stringUnit": {
+						"state": "translated",
+						"value": "Canvas refused the request. Please try again later."
+					}
+				},
+				"zh-Hans": {
+					"stringUnit": {
+						"state": "translated",
+						"value": "Canvas 拒绝了该请求，请稍后重试。"
+					}
+				}
+			}
+		},
+		"canvasErrorSignInFailed": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": {
+					"stringUnit": { "state": "translated", "value": "Sign-in failed. Please try again." }
+				},
+				"zh-Hans": { "stringUnit": { "state": "translated", "value": "登录失败，请重试。" } }
+			}
+		},
+		"canvasErrorUnsupportedClient": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": {
+					"stringUnit": { "state": "translated", "value": "Canvas did not recognise this app." }
+				},
+				"zh-Hans": { "stringUnit": { "state": "translated", "value": "Canvas 未能识别此应用。" } }
+			}
+		},
+		"canvasLoadingCourses": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": { "stringUnit": { "state": "translated", "value": "Loading courses…" } },
+				"zh-Hans": { "stringUnit": { "state": "translated", "value": "正在载入课程…" } }
+			}
+		},
+		"canvasNeedsSignIn": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": {
+					"stringUnit": {
+						"state": "translated",
+						"value": "Sign in again to keep this account up to date"
+					}
+				},
+				"zh-Hans": {
+					"stringUnit": {
+						"state": "translated",
+						"value": "请重新登录以保持该账户同步"
+					}
+				}
+			}
+		},
+		"canvasNoCourses": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": { "stringUnit": { "state": "translated", "value": "No courses found." } },
+				"zh-Hans": { "stringUnit": { "state": "translated", "value": "未找到课程。" } }
+			}
+		},
+		"canvasOnlyEnabledCourses": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": {
+					"stringUnit": {
+						"state": "translated",
+						"value": "Reminders are only shown for the enabled courses."
+					}
+				},
+				"zh-Hans": {
+					"stringUnit": {
+						"state": "translated",
+						"value": "仅对启用的课程显示提醒。"
+					}
+				}
+			}
+		},
+		"canvasReminderRuleColumn": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": { "stringUnit": { "state": "translated", "value": "Reminder" } },
+				"zh-Hans": { "stringUnit": { "state": "translated", "value": "提醒" } }
+			}
+		},
+		"canvasReminderRuleEditorTitle": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": { "stringUnit": { "state": "translated", "value": "Reminder Time" } },
+				"zh-Hans": { "stringUnit": { "state": "translated", "value": "提醒时间" } }
+			}
+		},
+		"canvasReminderTimesCaption": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": {
+					"stringUnit": {
+						"state": "translated",
+						"value": "Canvas assignments carry no alarms of their own, so reminder times are set relative to the due date."
+					}
+				},
+				"zh-Hans": {
+					"stringUnit": {
+						"state": "translated",
+						"value": "Canvas 作业本身没有提醒设置，因此需要相对于截止时间自行设置提醒时间。"
+					}
+				}
+			}
+		},
+		"canvasReminderTimesHeader": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": { "stringUnit": { "state": "translated", "value": "Reminder Times" } },
+				"zh-Hans": { "stringUnit": { "state": "translated", "value": "提醒时间" } }
+			}
+		},
+		"canvasRemoveAccount": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": { "stringUnit": { "state": "translated", "value": "Remove this account" } },
+				"zh-Hans": { "stringUnit": { "state": "translated", "value": "移除该账户" } }
+			}
+		},
+		"canvasRemoveReminderRule": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": { "stringUnit": { "state": "translated", "value": "Remove this reminder time" } },
+				"zh-Hans": { "stringUnit": { "state": "translated", "value": "移除该提醒时间" } }
+			}
+		},
+		"canvasRuleDaysFormat": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": {
+					"stringUnit": { "state": "translated", "value": "%lld days before the due date, at %@" }
+				},
+				"zh-Hans": { "stringUnit": { "state": "translated", "value": "截止日期前 %lld 天，%@" } }
+			}
+		},
+		"canvasRuleDaysTemplate": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": {
+					"stringUnit": { "state": "translated", "value": "{} days before the due date, at {}" }
+				},
+				"zh-Hans": { "stringUnit": { "state": "translated", "value": "截止日期前 {} 天，{}" } }
+			}
+		},
+		"canvasRuleDaysTitle": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": { "stringUnit": { "state": "translated", "value": "Some days before the due date" } },
+				"zh-Hans": { "stringUnit": { "state": "translated", "value": "截止前若干天" } }
+			}
+		},
+		"canvasRuleOffsetFormat": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": {
+					"stringUnit": { "state": "translated", "value": "%@ before the deadline" }
+				},
+				"zh-Hans": { "stringUnit": { "state": "translated", "value": "截止时间前 %@" } }
+			}
+		},
+		"canvasRuleOffsetTemplate": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": { "stringUnit": { "state": "translated", "value": "{} before the deadline" } },
+				"zh-Hans": { "stringUnit": { "state": "translated", "value": "截止时间前 {}" } }
+			}
+		},
+		"canvasRuleOffsetTitle": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": {
+					"stringUnit": { "state": "translated", "value": "A set time before the deadline" }
+				},
+				"zh-Hans": { "stringUnit": { "state": "translated", "value": "提前固定时长" } }
+			}
+		},
+		"canvasRuleOnDueDayFormat": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": {
+					"stringUnit": { "state": "translated", "value": "On the due date at %@" }
+				},
+				"zh-Hans": { "stringUnit": { "state": "translated", "value": "截止当天，%@" } }
+			}
+		},
+		"canvasRuleOnDueDayTemplate": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": { "stringUnit": { "state": "translated", "value": "On the due date at {}" } },
+				"zh-Hans": { "stringUnit": { "state": "translated", "value": "截止当天，{}" } }
+			}
+		},
+		"canvasRuleOnDueDayTitle": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": { "stringUnit": { "state": "translated", "value": "On the due date" } },
+				"zh-Hans": { "stringUnit": { "state": "translated", "value": "截止当天" } }
+			}
+		},
+		"canvasSave": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": { "stringUnit": { "state": "translated", "value": "Save" } },
+				"zh-Hans": { "stringUnit": { "state": "translated", "value": "保存" } }
+			}
+		},
+		"canvasSignInAgain": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": { "stringUnit": { "state": "translated", "value": "Sign In Again" } },
+				"zh-Hans": { "stringUnit": { "state": "translated", "value": "重新登录" } }
+			}
+		},
 		"demoCalendarTitle": {
 			"extractionState": "manual",
 			"localizations": {
@@ -205,11 +567,39 @@
 				"zh-Hans": { "stringUnit": { "state": "translated", "value": "关闭" } }
 			}
 		},
+		"menuCopy": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": { "stringUnit": { "state": "translated", "value": "Copy" } },
+				"zh-Hans": { "stringUnit": { "state": "translated", "value": "拷贝" } }
+			}
+		},
+		"menuCut": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": { "stringUnit": { "state": "translated", "value": "Cut" } },
+				"zh-Hans": { "stringUnit": { "state": "translated", "value": "剪切" } }
+			}
+		},
+		"menuEdit": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": { "stringUnit": { "state": "translated", "value": "Edit" } },
+				"zh-Hans": { "stringUnit": { "state": "translated", "value": "编辑" } }
+			}
+		},
 		"menuFile": {
 			"extractionState": "manual",
 			"localizations": {
 				"en": { "stringUnit": { "state": "translated", "value": "File" } },
 				"zh-Hans": { "stringUnit": { "state": "translated", "value": "文件" } }
+			}
+		},
+		"menuPaste": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": { "stringUnit": { "state": "translated", "value": "Paste" } },
+				"zh-Hans": { "stringUnit": { "state": "translated", "value": "粘贴" } }
 			}
 		},
 		"menuQuit": {
@@ -219,11 +609,32 @@
 				"zh-Hans": { "stringUnit": { "state": "translated", "value": "退出日历提醒" } }
 			}
 		},
+		"menuRedo": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": { "stringUnit": { "state": "translated", "value": "Redo" } },
+				"zh-Hans": { "stringUnit": { "state": "translated", "value": "重做" } }
+			}
+		},
+		"menuSelectAll": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": { "stringUnit": { "state": "translated", "value": "Select All" } },
+				"zh-Hans": { "stringUnit": { "state": "translated", "value": "全选" } }
+			}
+		},
 		"menuSettings": {
 			"extractionState": "manual",
 			"localizations": {
 				"en": { "stringUnit": { "state": "translated", "value": "Settings…" } },
 				"zh-Hans": { "stringUnit": { "state": "translated", "value": "设置…" } }
+			}
+		},
+		"menuUndo": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": { "stringUnit": { "state": "translated", "value": "Undo" } },
+				"zh-Hans": { "stringUnit": { "state": "translated", "value": "撤销" } }
 			}
 		},
 		"missedReminders": {
@@ -238,6 +649,13 @@
 			"localizations": {
 				"en": { "stringUnit": { "state": "translated", "value": "No calendars available" } },
 				"zh-Hans": { "stringUnit": { "state": "translated", "value": "没有可用的日历" } }
+			}
+		},
+		"noItems": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": { "stringUnit": { "state": "translated", "value": "No Items" } },
+				"zh-Hans": { "stringUnit": { "state": "translated", "value": "无项目" } }
 			}
 		},
 		"noSound": {
@@ -377,18 +795,18 @@
 				"zh-Hans": { "stringUnit": { "state": "translated", "value": "日历" } }
 			}
 		},
+		"tabCanvas": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": { "stringUnit": { "state": "translated", "value": "Canvas" } },
+				"zh-Hans": { "stringUnit": { "state": "translated", "value": "Canvas" } }
+			}
+		},
 		"tabGeneral": {
 			"extractionState": "manual",
 			"localizations": {
 				"en": { "stringUnit": { "state": "translated", "value": "General" } },
 				"zh-Hans": { "stringUnit": { "state": "translated", "value": "通用" } }
-			}
-		},
-		"tabSound": {
-			"extractionState": "manual",
-			"localizations": {
-				"en": { "stringUnit": { "state": "translated", "value": "Sound" } },
-				"zh-Hans": { "stringUnit": { "state": "translated", "value": "声音" } }
 			}
 		},
 		"tenMinutes": {

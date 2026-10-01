@@ -81,6 +81,29 @@ struct LocalizationTests {
 		#expect(missing.isEmpty, "Untranslated keys: \(missing.sorted().joined(separator: ", "))")
 	}
 
+	@Test("Canvas rule labels hold one placeholder per input control")
+	func canvasRuleLabelsAreSegmented() throws {
+		let catalog = try loadCatalog()
+		let expected = [
+			"canvasRuleDaysTemplate": 2,
+			"canvasRuleOnDueDayTemplate": 1,
+			"canvasRuleOffsetTemplate": 1,
+		]
+
+		for (key, count) in expected {
+			for language in ["en", "zh-Hans"] {
+				let value = try #require(
+					catalog.strings[key]?.localizations?[language]?.stringUnit.value,
+					"\(key) [\(language)] is missing"
+				)
+				#expect(
+					value.components(separatedBy: "{}").count - 1 == count,
+					"\(key) [\(language)]: the row has \(count) input controls"
+				)
+			}
+		}
+	}
+
 	@Test("Generated lookups resolve against the package bundle")
 	func resolvesFromPackageBundle() {
 		// A missing value falls back to the key itself, so an empty or

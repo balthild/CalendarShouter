@@ -37,6 +37,7 @@ public final class ReminderScheduler {
 
 	private let service: CalendarServicing
 	private let settings: SettingsStore
+	private let canvas: CanvasServicing?
 	private let clock: Clock
 	private let defaults: UserDefaults
 	private let lookahead: TimeInterval
@@ -60,6 +61,7 @@ public final class ReminderScheduler {
 	public init(
 		service: CalendarServicing,
 		settings: SettingsStore,
+		canvas: CanvasServicing? = nil,
 		clock: Clock = SystemClock(),
 		defaults: UserDefaults = .standard,
 		lookahead: TimeInterval = ReminderScheduler.defaultLookahead,
@@ -67,6 +69,7 @@ public final class ReminderScheduler {
 	) {
 		self.service = service
 		self.settings = settings
+		self.canvas = canvas
 		self.clock = clock
 		self.defaults = defaults
 		self.lookahead = lookahead
@@ -126,7 +129,18 @@ public final class ReminderScheduler {
 			)
 			: []
 
-		pendingFires = (eventFires + reminderFires + snoozes.map { self.fire(for: $0) })
+		// Canvas assignments have no alarms of their own; their fire times are derived from
+		// the user's rules, and each account's own add time bounds what may be replayed.
+		let canvasFires = fires(
+			from: canvas?.reminders(from: windowStart, to: windowEnd) ?? [],
+			windowStart: windowStart,
+			windowEnd: windowEnd,
+			now: now,
+			isEnabled: { self.settings.isCanvasReminderEnabled(forCourseID: $0.calendar.id) },
+			isAfterActivation: { _, _ in true }
+		)
+
+		pendingFires = (eventFires + reminderFires + canvasFires + snoozes.map { self.fire(for: $0) })
 			.sorted { $0.fireDate < $1.fireDate }
 		scheduleNext()
 	}

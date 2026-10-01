@@ -19,6 +19,7 @@ public final class SettingsWindowController: NSObject, NSToolbarDelegate {
 	private let selection = SettingsSelection()
 
 	private var window: NSWindow?
+	private var contentHostingView: ContentSizingHostingView<AnyView>?
 	private var isPresented = false
 	private var tabButtons: [SettingsTab: SettingsTabButton] = [:]
 	nonisolated(unsafe) private var closeObserver: NSObjectProtocol?
@@ -50,10 +51,11 @@ public final class SettingsWindowController: NSObject, NSToolbarDelegate {
 			isPresented = true
 			// Shows the Dock icon for as long as the window is open.
 			activationPolicy.windowDidOpen()
-			// Sized before centring: the hosting view has not been laid out on the
-			// first call, and `center()` on a wrongly sized window leaves it
-			// off-centre.
-			window.setContentSize(contentSize(for: selection.tab))
+			// Laid out before being measured, so the window opens at the size of the pane it is
+			// about to show rather than at the placeholder size it was created with. Centred
+			// after sizing, so it is centred on the size it opens at.
+			window.layoutIfNeeded()
+			window.setContentSize(initialContentSize())
 			window.center()
 		}
 
@@ -90,7 +92,7 @@ public final class SettingsWindowController: NSObject, NSToolbarDelegate {
 		// The window is created without content so that its toolbar exists before
 		// any hosting view is installed.
 		let window = NSWindow(
-			contentRect: NSRect(origin: .zero, size: contentSize(for: selection.tab)),
+			contentRect: NSRect(origin: .zero, size: SettingsPaneMetrics.initialContentSize),
 			styleMask: [.titled, .closable],
 			backing: .buffered,
 			defer: false
@@ -126,11 +128,14 @@ public final class SettingsWindowController: NSObject, NSToolbarDelegate {
 		// them identical regardless of focus.
 		window.titlebarSeparatorStyle = .none
 
-		window.contentView = NSHostingView(rootView: makeContent(selection))
-		window.setContentSize(contentSize(for: selection.tab))
+		let hostingView = ContentSizingHostingView(rootView: makeContent(selection))
+		hostingView.onContentHeightChange = { [weak self] height in
+			self?.resizeToFitContentHeight(height)
+		}
+		contentHostingView = hostingView
+		window.contentView = hostingView
 		selection.onTabChange = { [weak self] _ in
 			self?.updateTabButtons()
-			self?.resizeToFitCurrentPane()
 		}
 
 		closeObserver = NotificationCenter.default.addObserver(
@@ -153,14 +158,24 @@ public final class SettingsWindowController: NSObject, NSToolbarDelegate {
 
 	// MARK: - Sizing
 
-	/// Resizes the window to the pane now shown, animated, keeping its top edge and
+	/// Grows or shrinks the window to the content's height, animated, keeping the top edge and
 	/// horizontal position so the tab strip does not jump.
-	private func resizeToFitCurrentPane() {
+	///
+	/// Driven by the content itself rather than by a measurement taken once when the pane
+	/// appears: a pane whose content arrives asynchronously — the Canvas pane's course list is
+	/// the first of them — asks for more room after it is already on screen.
+	private func resizeToFitContentHeight(_ contentHeight: CGFloat) {
 		guard let window, window.isVisible else { return }
-		let fittedContentSize = contentSize(for: selection.tab)
-		let fittedFrame = window.frameRect(
-			forContentRect: NSRect(origin: .zero, size: fittedContentSize)
+		// Mid-animation the content is laid out at an intermediate size, so a report taken then
+		// would start a second animation from the wrong height. The animation's completion
+		// re-measures once it has settled, so a change made in the meantime is not lost.
+		guard !SettingsWindowResize.isAnimating else { return }
+
+		let fittedSize = NSSize(
+			width: SettingsPaneMetrics.width,
+			height: min(contentHeight, maximumContentHeight())
 		)
+		let fittedFrame = window.frameRect(forContentRect: NSRect(origin: .zero, size: fittedSize))
 		let current = window.frame
 		let targetFrame = NSRect(
 			x: current.minX,
@@ -179,12 +194,13 @@ public final class SettingsWindowController: NSObject, NSToolbarDelegate {
 			context.duration = 0.2
 			context.allowsImplicitAnimation = true
 			window.animator().setFrame(targetFrame, display: true)
-		} completionHandler: {
+		} completionHandler: { [weak self] in
 			MainActor.assumeIsolated {
 				// A superseded animation's completion must not re-show the scrollers while
 				// the current one is still animating.
 				guard SettingsWindowResize.end(token) else { return }
 				Self.setVerticalScrollersHidden(false, in: window.contentView)
+				self?.contentHostingView?.reportContentHeight()
 			}
 		}
 	}
@@ -199,31 +215,25 @@ public final class SettingsWindowController: NSObject, NSToolbarDelegate {
 		}
 	}
 
-	/// The content size that fits the given pane, capped; a taller pane scrolls.
-	private func contentSize(for tab: SettingsTab) -> NSSize {
+	/// The content size the window opens at.
+	///
+	/// The off-screen probe this replaces measured `fittingSize`, which comes out short for a
+	/// grouped form, so the pane always scrolled a little. The live hosting view can be measured
+	/// instead, as soon as it has been laid out.
+	private func initialContentSize() -> NSSize {
 		NSSize(
-			width: SettingsPanes.width,
-			height: min(measuredHeight(for: tab), maximumContentHeight())
+			width: SettingsPaneMetrics.width,
+			height: min(
+				contentHostingView?.contentHeight ?? SettingsPaneMetrics.fallbackHeight,
+				maximumContentHeight()
+			)
 		)
-	}
-
-	/// Lays the pane out off-screen, at the window's width, to find the height it wants.
-	private func measuredHeight(for tab: SettingsTab) -> CGFloat {
-		let probe = NSHostingView(rootView: makeContent(SettingsSelection(tab: tab)))
-		probe.frame = NSRect(
-			origin: .zero,
-			size: NSSize(width: SettingsPanes.width, height: SettingsPanes.fallbackHeight)
-		)
-		probe.layoutSubtreeIfNeeded()
-		let height = probe.fittingSize.height
-		guard height.isFinite, height > 0 else { return SettingsPanes.fallbackHeight }
-		return height.rounded(.up)
 	}
 
 	private func maximumContentHeight() -> CGFloat {
 		let screen = window?.screen ?? NSScreen.main
-		let usableHeight = screen?.visibleFrame.height ?? SettingsPanes.fallbackHeight
-		return (usableHeight * SettingsPanes.maximumHeightFraction).rounded(.down)
+		let usableHeight = screen?.visibleFrame.height ?? SettingsPaneMetrics.fallbackHeight
+		return (usableHeight * SettingsPaneMetrics.maximumHeightFraction).rounded(.down)
 	}
 
 	// MARK: - Toolbar

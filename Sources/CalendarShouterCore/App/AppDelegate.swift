@@ -78,6 +78,31 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
 		fileMenuItem.submenu = fileMenu
 		mainMenu.addItem(fileMenuItem)
 
+		// Edit menu. Every item targets the responder chain, so the standard
+		// selectors land on whatever is being edited. Without this menu ⌘V reaches
+		// nothing at all, and WebKit leaves Paste out of the web view's own context
+		// menu for the same reason: it validates those items against the chain.
+		let editMenuItem = NSMenuItem()
+		let editMenu = NSMenu(title: String(localizable: .menuEdit))
+		let editItems: [(title: String.Localizable, action: Selector, key: String)] = [
+			(.menuUndo, Selector(("undo:")), "z"),
+			(.menuRedo, Selector(("redo:")), "Z"),
+			(.menuCut, #selector(NSText.cut(_:)), "x"),
+			(.menuCopy, #selector(NSText.copy(_:)), "c"),
+			(.menuPaste, #selector(NSText.paste(_:)), "v"),
+			(.menuSelectAll, #selector(NSText.selectAll(_:)), "a"),
+		]
+		for (index, item) in editItems.enumerated() {
+			if index == 2 { editMenu.addItem(.separator()) }
+			editMenu.addItem(
+				withTitle: String(localizable: item.title),
+				action: item.action,
+				keyEquivalent: item.key
+			)
+		}
+		editMenuItem.submenu = editMenu
+		mainMenu.addItem(editMenuItem)
+
 		NSApp.mainMenu = mainMenu
 	}
 
