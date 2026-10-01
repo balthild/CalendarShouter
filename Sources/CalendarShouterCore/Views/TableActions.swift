@@ -21,7 +21,8 @@ struct TableActions<ID: Hashable>: View {
 		HStack(spacing: 4) {
 			Button(action: onAdd) {
 				Image(systemName: "plus")
-					.frame(width: 16, height: 16)
+					.font(.system(size: 11, weight: .medium))
+					.frame(width: 20, height: 20)
 					.contentShape(Rectangle())
 			}
 			.help(String(localizable: addHelp))
@@ -34,7 +35,8 @@ struct TableActions<ID: Hashable>: View {
 				onRemove(identifier)
 			} label: {
 				Image(systemName: "minus")
-					.frame(width: 16, height: 16)
+					.font(.system(size: 11, weight: .medium))
+					.frame(width: 20, height: 20)
 					.contentShape(Rectangle())
 			}
 			.disabled(selection.wrappedValue == nil)
@@ -43,40 +45,13 @@ struct TableActions<ID: Hashable>: View {
 			Spacer(minLength: 0)
 		}
 		.buttonStyle(TableActionButtonStyle())
-		.imageScale(.small)
-		.padding(.horizontal, 6)
-		.padding(.vertical, 4)
+		.frame(height: 24)
+		.padding(.horizontal, 5)
 		.background(.primary.opacity(0.037))
 		.overlay(alignment: .top) {
 			Rectangle()
 				.fill(Color(nsColor: .separatorColor))
 				.frame(height: 1 / displayScale)
-		}
-	}
-}
-
-/// A one-row table standing in for a table with nothing in it.
-///
-/// A `Table` draws nothing at all when its data is empty — not even the column headers — so
-/// the placeholder has to be a real row.
-struct EmptyTable: View {
-	let actions: TableActions<Never>
-
-	private struct Placeholder: Identifiable {
-		var id: Int { 0 }
-	}
-
-	var body: some View {
-		Table([Placeholder()]) {
-			TableColumn("") { _ in
-				Text(localizable: .noItems)
-					.foregroundStyle(.secondary)
-					.frame(maxWidth: .infinity, alignment: .center)
-			}
-		}
-		.tableColumnHeaders(.hidden)
-		.safeAreaInset(edge: .bottom, spacing: 0) {
-			actions
 		}
 	}
 }
@@ -103,8 +78,8 @@ private struct TableActionButtonStyle: ButtonStyle {
 		}
 
 		private var tint: Color {
-			guard isEnabled else { return .secondary.opacity(0.5) }
-			return configuration.isPressed ? .primary.opacity(0.8) : .secondary
+			guard isEnabled else { return .secondary.opacity(0.6) }
+			return .primary.opacity(configuration.isPressed ? 0.9 : 0.7)
 		}
 	}
 }

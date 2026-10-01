@@ -30,7 +30,7 @@ struct CanvasSettingsPane: View {
 		}
 		.sheet(item: $editingRule) { rule in
 			CanvasReminderRuleEditor(rule: rule) { saved in
-				upsert(saved)
+				upsertRule(saved)
 			}
 		}
 	}
@@ -56,7 +56,14 @@ struct CanvasSettingsPane: View {
 	private var accountsTable: some View {
 		Table(store.canvasAccounts, selection: $selectedAccountID) {
 			TableColumn(String(localizable: .canvasAccountColumn)) { account in
-				accountLabel(account)
+				HStack(spacing: 6) {
+					Text(account.userName)
+					if canvasService.needsReauthentication.contains(account.id) {
+						Image(systemName: "exclamationmark.triangle.fill")
+							.foregroundStyle(.yellow)
+							.help(String(localizable: .canvasNeedsSignIn))
+					}
+				}
 			}
 			TableColumn(String(localizable: .canvasDomainColumn)) { account in
 				Text(account.domain)
@@ -77,12 +84,6 @@ struct CanvasSettingsPane: View {
 		}
 	}
 
-	private func removeAccount(_ identifier: CanvasAccount.ID) {
-		guard let account = store.canvasAccounts.first(where: { $0.id == identifier }) else { return }
-		canvasService.removeAccount(account)
-		selectedAccountID = nil
-	}
-
 	private var emptyAccountsTable: some View {
 		EmptyTable(
 			actions: TableActions(
@@ -96,16 +97,10 @@ struct CanvasSettingsPane: View {
 		)
 	}
 
-	@ViewBuilder
-	private func accountLabel(_ account: CanvasAccount) -> some View {
-		HStack(spacing: 6) {
-			Text(account.userName)
-			if canvasService.needsReauthentication.contains(account.id) {
-				Image(systemName: "exclamationmark.triangle.fill")
-					.foregroundStyle(.yellow)
-					.help(String(localizable: .canvasNeedsSignIn))
-			}
-		}
+	private func removeAccount(_ identifier: CanvasAccount.ID) {
+		guard let account = store.canvasAccounts.first(where: { $0.id == identifier }) else { return }
+		canvasService.removeAccount(account)
+		selectedAccountID = nil
 	}
 
 	// MARK: - Reminder times
@@ -114,7 +109,7 @@ struct CanvasSettingsPane: View {
 	private var reminderRulesSection: some View {
 		Section {
 			if store.canvasReminderRules.isEmpty {
-				emptyTable
+				emptyReminderRulesTable
 			} else {
 				reminderRulesTable
 			}
@@ -149,12 +144,12 @@ struct CanvasSettingsPane: View {
 				removeHelp: .canvasRemoveReminderRule,
 				onAdd: { editingRule = CanvasReminderRule(kind: .beforeDue) },
 				selection: $selectedRuleID,
-				onRemove: { remove([$0]) }
+				onRemove: { removeRules([$0]) }
 			)
 		}
 	}
 
-	private var emptyTable: some View {
+	private var emptyReminderRulesTable: some View {
 		EmptyTable(
 			actions: TableActions(
 				addHelp: .canvasAddReminderRule,
@@ -167,7 +162,12 @@ struct CanvasSettingsPane: View {
 		)
 	}
 
-	private func upsert(_ rule: CanvasReminderRule) {
+	private func rule(in identifiers: Set<CanvasReminderRule.ID>) -> CanvasReminderRule? {
+		guard let identifier = identifiers.first else { return nil }
+		return store.canvasReminderRules.first { $0.id == identifier }
+	}
+
+	private func upsertRule(_ rule: CanvasReminderRule) {
 		if let index = store.canvasReminderRules.firstIndex(where: { $0.id == rule.id }) {
 			store.canvasReminderRules[index] = rule
 		} else {
@@ -175,12 +175,7 @@ struct CanvasSettingsPane: View {
 		}
 	}
 
-	private func rule(in identifiers: Set<CanvasReminderRule.ID>) -> CanvasReminderRule? {
-		guard let identifier = identifiers.first else { return nil }
-		return store.canvasReminderRules.first { $0.id == identifier }
-	}
-
-	private func remove(_ identifiers: Set<CanvasReminderRule.ID>) {
+	private func removeRules(_ identifiers: Set<CanvasReminderRule.ID>) {
 		store.canvasReminderRules.removeAll { identifiers.contains($0.id) }
 		selectedRuleID = nil
 	}
