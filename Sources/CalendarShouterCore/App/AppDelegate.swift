@@ -36,6 +36,10 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
 		} else if CommandLine.arguments.contains("--demo-reminder") {
 			coordinator.presentDemoReminder()
 		}
+
+		if CommandLine.arguments.contains("--open-settings") {
+			coordinator.showSettings()
+		}
 	}
 
 	/// Installs the menu bar shown while a window is open.
