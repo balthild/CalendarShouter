@@ -47,6 +47,7 @@ public final class CanvasService: CanvasServicing {
 	private let secrets: any SecretStore
 	private let settings: SettingsStore
 	private let calendar: Calendar
+	private let webSessions: any CanvasWebSessionStoring
 
 	private var assignments: [CanvasAssignment] = []
 	private var refreshTask: Task<Void, Never>?
@@ -57,12 +58,14 @@ public final class CanvasService: CanvasServicing {
 		api: CanvasAPIClient,
 		settings: SettingsStore,
 		secrets: any SecretStore = KeychainHelperClient(),
-		calendar: Calendar = .current
+		calendar: Calendar = .current,
+		webSessions: any CanvasWebSessionStoring = SystemCanvasWebSessions()
 	) {
 		self.api = api
 		self.settings = settings
 		self.secrets = secrets
 		self.calendar = calendar
+		self.webSessions = webSessions
 	}
 
 	public func courses(forAccountID identifier: String) -> [CanvasCourse] {
@@ -97,7 +100,14 @@ public final class CanvasService: CanvasServicing {
 	///
 	/// The account id is derived from the domain and the user, so signing in twice does not
 	/// leave two copies behind.
-	public func signIn(_ pending: PendingSignIn, code: String) async throws -> CanvasAccount {
+	///
+	/// `storeIdentifier` is the session the sign-in just ran in. It is recorded with the
+	/// account so later sign-ins reuse that session instead of asking for the password again.
+	public func signIn(
+		_ pending: PendingSignIn,
+		code: String,
+		storeIdentifier: UUID
+	) async throws -> CanvasAccount {
 		let result = try await api.authenticate(
 			code: code,
 			credentials: pending.credentials,
@@ -110,7 +120,8 @@ public final class CanvasService: CanvasServicing {
 			baseURL: pending.baseURL,
 			userID: result.user.id,
 			userName: result.user.name,
-			addedAt: Date()
+			addedAt: Date(),
+			storeIdentifier: storeIdentifier
 		)
 		try secrets.setValue(pending.credentials, for: SecretKey.client(accountID: account.id))
 		try secrets.setValue(result.tokens, for: SecretKey.tokens(accountID: account.id))
@@ -127,12 +138,23 @@ public final class CanvasService: CanvasServicing {
 		settings.canvasAccounts.removeAll { $0.id == account.id }
 		try? secrets.removeValue(for: SecretKey.tokens(accountID: account.id))
 		try? secrets.removeValue(for: SecretKey.client(accountID: account.id))
+		webSessions.discard(identifier: account.storeIdentifier)
 
 		courses.removeAll { $0.accountID == account.id }
 		assignments.removeAll { $0.course.accountID == account.id }
 		needsReauthentication.remove(account.id)
 		settings.pruneCanvasCourseSelection(keeping: Set(courses.map(\.id)))
 		onChange?()
+	}
+
+	/// Deletes the sign-in sessions that no longer belong to an account.
+	///
+	/// A session outlives the account it was created for only if the account was removed
+	/// without one. Called once at launch.
+	public func discardUnclaimedWebSessions() {
+		webSessions.discardUnclaimed(
+			keeping: Set(settings.canvasAccounts.map(\.storeIdentifier))
+		)
 	}
 
 	// MARK: - Refreshing
@@ -205,6 +227,11 @@ public final class CanvasService: CanvasServicing {
 			} catch CanvasAPIError.http(let status, _) where status == 401 || status == 403 {
 				needingSignIn.insert(account.id)
 			} catch is SignInError {
+				needingSignIn.insert(account.id)
+			} catch SecretStoreError.corruptData {
+				// The stored credentials are unreadable rather than rejected. Signing in
+				// again rewrites them, so it is the same remedy — and without flagging it
+				// the account would keep serving a stale cache with nothing to show for it.
 				needingSignIn.insert(account.id)
 			} catch {
 				// A transient failure leaves the previous cache in place.

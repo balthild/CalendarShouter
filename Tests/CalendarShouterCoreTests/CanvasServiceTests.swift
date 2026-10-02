@@ -109,9 +109,16 @@ final class FakeCanvasAPI: CanvasAPIClient, @unchecked Sendable {
 private func makeService(
 	api: FakeCanvasAPI,
 	settings: SettingsStore,
-	secrets: InMemorySecretStore
+	secrets: InMemorySecretStore,
+	webSessions: FakeCanvasWebSessions = FakeCanvasWebSessions()
 ) -> CanvasService {
-	CanvasService(api: api, settings: settings, secrets: secrets, calendar: utcCalendar)
+	CanvasService(
+		api: api,
+		settings: settings,
+		secrets: secrets,
+		calendar: utcCalendar,
+		webSessions: webSessions
+	)
 }
 
 private func makeRecord(
@@ -139,6 +146,7 @@ private func addAccount(
 	domain: String = "canvas.example.edu",
 	addedAt: Date = date(2026, 1, 1),
 	accessToken: String = "at",
+	storeIdentifier: UUID = UUID(),
 	to settings: SettingsStore,
 	secrets: InMemorySecretStore
 ) throws -> CanvasAccount {
@@ -148,7 +156,8 @@ private func addAccount(
 		baseURL: URL(string: "https://\(domain)")!,
 		userID: "7",
 		userName: "Student",
-		addedAt: addedAt
+		addedAt: addedAt,
+		storeIdentifier: storeIdentifier
 	)
 	settings.canvasAccounts.append(account)
 	try secrets.setValue(
@@ -207,11 +216,18 @@ struct CanvasServiceTests {
 		let service = makeService(api: api, settings: settings, secrets: secrets)
 
 		let pending = try await service.verifyDomain("canvas.example.edu")
-		let account = try await service.signIn(pending, code: "abc")
+		let storeIdentifier = UUID()
+		let account = try await service.signIn(
+			pending,
+			code: "abc",
+			storeIdentifier: storeIdentifier
+		)
 
 		#expect(account.id == "canvas.example.edu#7")
 		#expect(account.domain == "canvas.example.edu")
 		#expect(account.userName == "Student")
+		// Recorded so the next sign-in reuses the session this one just created.
+		#expect(account.storeIdentifier == storeIdentifier)
 		#expect(settings.canvasAccounts.map(\.id) == [account.id])
 		#expect(secrets.contains(SecretKey.tokens(accountID: account.id)))
 		#expect(secrets.contains(SecretKey.client(accountID: account.id)))
@@ -365,13 +381,24 @@ struct CanvasServiceTests {
 		let settings = SettingsStore(defaults: makeDefaults())
 		settings.canvasReminderRules = [CanvasReminderRule(kind: .beforeDue, minutes: 60)]
 		let secrets = InMemorySecretStore()
+		let webSessions = FakeCanvasWebSessions()
 		let api = FakeCanvasAPI()
 		api.courseRecords = [CanvasCourseRecord(id: "1", name: "Algorithms", courseCode: nil)]
 		api.assignmentRecords = [makeRecord()]
 
-		let account = try addAccount(to: settings, secrets: secrets)
+		let storeIdentifier = UUID()
+		let account = try addAccount(
+			storeIdentifier: storeIdentifier,
+			to: settings,
+			secrets: secrets
+		)
 
-		let service = makeService(api: api, settings: settings, secrets: secrets)
+		let service = makeService(
+			api: api,
+			settings: settings,
+			secrets: secrets,
+			webSessions: webSessions
+		)
 		service.refresh()
 		await service.currentRefresh?.value
 		settings.setCanvasReminderEnabled(true, forCourseID: "acc-1:1")
@@ -383,6 +410,49 @@ struct CanvasServiceTests {
 		#expect(settings.enabledCanvasCourseIDs.isEmpty)
 		#expect(!secrets.contains(SecretKey.tokens(accountID: account.id)))
 		#expect(service.reminders(from: date(2026, 3, 1), to: date(2026, 4, 1)).isEmpty)
+		// Removing an account is also a sign-out, so the session must not outlive it.
+		#expect(webSessions.discardedIdentifiers == [storeIdentifier])
+	}
+
+	@Test("Unreadable stored credentials ask for a sign-in rather than failing quietly")
+	func corruptCredentialsNeedSignIn() async throws {
+		let settings = SettingsStore(defaults: makeDefaults())
+		let secrets = InMemorySecretStore()
+		let api = FakeCanvasAPI()
+		api.courseRecords = [CanvasCourseRecord(id: "1", name: "Algorithms", courseCode: nil)]
+
+		try addAccount(to: settings, secrets: secrets)
+		// Whatever the keychain hands back, it is not the JSON the app wrote.
+		try secrets.set(Data("not json".utf8), for: SecretKey.tokens(accountID: "acc-1"))
+
+		let service = makeService(api: api, settings: settings, secrets: secrets)
+		service.refresh()
+		await service.currentRefresh?.value
+
+		#expect(service.needsReauthentication == ["acc-1"])
+	}
+
+	@Test("Launch reclamation is told which sessions accounts still claim")
+	func reclaimsUnclaimedSessions() async throws {
+		let settings = SettingsStore(defaults: makeDefaults())
+		let secrets = InMemorySecretStore()
+		let webSessions = FakeCanvasWebSessions()
+
+		let storeIdentifier = UUID()
+		try addAccount(storeIdentifier: storeIdentifier, to: settings, secrets: secrets)
+		// A second account claims its own session too, so only genuinely unclaimed ones go.
+		let otherIdentifier = UUID()
+		try addAccount(id: "acc-2", storeIdentifier: otherIdentifier, to: settings, secrets: secrets)
+
+		let service = makeService(
+			api: FakeCanvasAPI(),
+			settings: settings,
+			secrets: secrets,
+			webSessions: webSessions
+		)
+		service.discardUnclaimedWebSessions()
+
+		#expect(webSessions.reclaimRequests == [[storeIdentifier, otherIdentifier]])
 	}
 
 	@Test("A refresh that cannot read an account's token keeps its course selection")

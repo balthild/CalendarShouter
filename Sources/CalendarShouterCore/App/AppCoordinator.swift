@@ -100,6 +100,7 @@ public final class AppCoordinator {
 		applySettings()
 		scheduler.reload()
 		canvasService.refresh()
+		canvasService.discardUnclaimedWebSessions()
 		requestCalendarAccessIfNeeded()
 		requestRemindersAccessIfNeeded()
 	}

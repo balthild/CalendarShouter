@@ -11,9 +11,13 @@ struct CanvasSettingsPane: View {
 	@State private var selectedAccountID: CanvasAccount.ID?
 	@State private var selectedRuleID: CanvasReminderRule.ID?
 
-	/// Identifies the add-account sheet; empty means "start from scratch".
+	/// Identifies the add-account sheet.
 	private struct DomainPrompt: Identifiable {
-		let id: String
+		let id = UUID()
+		/// Prefilled, so signing in again does not make the user retype the domain.
+		let domain: String
+		/// The session to sign in with: the account's own, or a fresh one when adding.
+		let storeIdentifier: UUID
 	}
 
 	var body: some View {
@@ -26,7 +30,11 @@ struct CanvasSettingsPane: View {
 			}
 		}
 		.sheet(item: $domainPrompt) { prompt in
-			AddCanvasAccountSheet(canvasService: canvasService, initialDomain: prompt.id)
+			AddCanvasAccountSheet(
+				canvasService: canvasService,
+				initialDomain: prompt.domain,
+				storeIdentifier: prompt.storeIdentifier
+			)
 		}
 		.sheet(item: $editingRule) { rule in
 			CanvasReminderRuleEditor(rule: rule) { saved in
@@ -77,7 +85,9 @@ struct CanvasSettingsPane: View {
 			TableActions(
 				addHelp: .canvasAddAccount,
 				removeHelp: .canvasRemoveAccount,
-				onAdd: { domainPrompt = DomainPrompt(id: "") },
+				// A session of its own from the start, so the sign-in that creates the account
+				// is also the one that populates it.
+				onAdd: { domainPrompt = DomainPrompt(domain: "", storeIdentifier: UUID()) },
 				selection: $selectedAccountID,
 				onRemove: removeAccount
 			)
@@ -89,7 +99,7 @@ struct CanvasSettingsPane: View {
 			actions: TableActions(
 				addHelp: .canvasAddAccount,
 				removeHelp: .canvasRemoveAccount,
-				onAdd: { domainPrompt = DomainPrompt(id: "") },
+				onAdd: { domainPrompt = DomainPrompt(domain: "", storeIdentifier: UUID()) },
 				// No selection, so − stays disabled.
 				selection: .constant(nil),
 				onRemove: { _ in }
@@ -198,7 +208,10 @@ struct CanvasSettingsPane: View {
 
 					if canvasService.needsReauthentication.contains(account.id) {
 						Button {
-							domainPrompt = DomainPrompt(id: account.domain)
+							domainPrompt = DomainPrompt(
+								domain: account.domain,
+								storeIdentifier: account.storeIdentifier
+							)
 						} label: {
 							Text(localizable: .canvasSignInAgain)
 								.font(.caption)
@@ -258,6 +271,8 @@ struct CanvasSettingsPane: View {
 /// A sheet where the Canvas OAuth sign-in process takes place.
 private struct AddCanvasAccountSheet: View {
 	let canvasService: CanvasService
+	/// The session to sign in with, already allocated when adding an account.
+	let storeIdentifier: UUID
 
 	@Environment(\.dismiss) private var dismiss
 	@State private var domain: String
@@ -265,8 +280,9 @@ private struct AddCanvasAccountSheet: View {
 	@State private var message: String?
 	@State private var isWorking = false
 
-	init(canvasService: CanvasService, initialDomain: String) {
+	init(canvasService: CanvasService, initialDomain: String, storeIdentifier: UUID) {
 		self.canvasService = canvasService
+		self.storeIdentifier = storeIdentifier
 		_domain = State(initialValue: initialDomain)
 	}
 
@@ -279,6 +295,7 @@ private struct AddCanvasAccountSheet: View {
 
 				CanvasAuthorizationView(
 					url: url,
+					storeIdentifier: storeIdentifier,
 					onCode: { finish(pending: pending, code: $0) },
 					onFailure: { _ in fail(with: .canvasErrorSignInFailed) }
 				)
@@ -349,7 +366,11 @@ private struct AddCanvasAccountSheet: View {
 
 		Task { @MainActor in
 			do {
-				_ = try await canvasService.signIn(pending, code: code)
+				_ = try await canvasService.signIn(
+					pending,
+					code: code,
+					storeIdentifier: storeIdentifier
+				)
 				dismiss()
 			} catch {
 				self.pending = nil
@@ -384,6 +405,8 @@ private struct AddCanvasAccountSheet: View {
 /// Canvas's sign-in page, watched for the redirect that carries the authorization code.
 private struct CanvasAuthorizationView: NSViewRepresentable {
 	let url: URL
+	/// The session this sign-in belongs to.
+	let storeIdentifier: UUID
 	let onCode: @MainActor (String) -> Void
 	let onFailure: @MainActor (String) -> Void
 
@@ -392,7 +415,11 @@ private struct CanvasAuthorizationView: NSViewRepresentable {
 	}
 
 	func makeNSView(context: Context) -> WKWebView {
-		let webView = WKWebView(frame: .zero, configuration: WKWebViewConfiguration())
+		let configuration = WKWebViewConfiguration()
+		// Assigned before the web view exists, which is the only point at which WebKit
+		// accepts it.
+		configuration.websiteDataStore = CanvasWebSession.store(forIdentifier: storeIdentifier)
+		let webView = WKWebView(frame: .zero, configuration: configuration)
 		webView.navigationDelegate = context.coordinator
 		webView.load(URLRequest(url: url))
 		return webView

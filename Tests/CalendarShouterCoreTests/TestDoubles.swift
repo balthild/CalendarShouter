@@ -91,3 +91,14 @@ final class FakeCalendarService: CalendarServicing {
 
 	func refresh() { refreshCount += 1 }
 }
+
+/// Records the sign-in sessions the service asks to clear, without touching WebKit.
+@MainActor
+final class FakeCanvasWebSessions: CanvasWebSessionStoring {
+	private(set) var discardedIdentifiers: [UUID] = []
+	private(set) var reclaimRequests: [Set<UUID>] = []
+
+	func discard(identifier: UUID) { discardedIdentifiers.append(identifier) }
+
+	func discardUnclaimed(keeping identifiers: Set<UUID>) { reclaimRequests.append(identifiers) }
+}

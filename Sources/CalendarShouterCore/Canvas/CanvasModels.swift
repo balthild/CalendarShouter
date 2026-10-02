@@ -18,13 +18,25 @@ public struct CanvasAccount: Sendable, Identifiable, Equatable, Codable {
 	/// shout about every assignment the account has ever had.
 	public let addedAt: Date
 
+	/// The browser session this account signs in with.
+	///
+	/// Every account has one, including accounts stored before the field existed: `@Fallback`
+	/// hands those a new identifier rather than failing the decode, since a missing key would
+	/// otherwise take the whole account list down with it. The cost is that such an account
+	/// starts with an empty session, so its next sign-in asks for a password instead of
+	/// reusing the shared store it used to sign in through. Worth it: before this field, two
+	/// accounts on one domain shared that store.
+	@Fallback<NewWebSessionIdentifier>
+	public var storeIdentifier: UUID
+
 	public init(
 		id: String,
 		domain: String,
 		baseURL: URL,
 		userID: String,
 		userName: String,
-		addedAt: Date
+		addedAt: Date,
+		storeIdentifier: UUID = UUID()
 	) {
 		self.id = id
 		self.domain = domain
@@ -32,6 +44,7 @@ public struct CanvasAccount: Sendable, Identifiable, Equatable, Codable {
 		self.userID = userID
 		self.userName = userName
 		self.addedAt = addedAt
+		self.storeIdentifier = storeIdentifier
 	}
 }
 

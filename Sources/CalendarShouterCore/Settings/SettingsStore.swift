@@ -62,7 +62,7 @@ public final class SettingsStore {
 	///
 	/// The credentials that go with each account are *not* here; those live in the keychain.
 	public var canvasAccounts: [CanvasAccount] {
-		didSet { persist(canvasAccounts, forKey: Key.canvasAccounts) }
+		didSet { PersistedJSON.set(canvasAccounts, forKey: Key.canvasAccounts, in: defaults) }
 	}
 
 	/// The rules that turn an assignment's due date into reminder times.
@@ -70,7 +70,7 @@ public final class SettingsStore {
 	/// Unlike calendar selection these are not per course: one list applies to every course
 	/// of every account.
 	public var canvasReminderRules: [CanvasReminderRule] {
-		didSet { persist(canvasReminderRules, forKey: Key.canvasReminderRules) }
+		didSet { PersistedJSON.set(canvasReminderRules, forKey: Key.canvasReminderRules, in: defaults) }
 	}
 
 	/// Canvas courses the user has switched on.
@@ -89,9 +89,10 @@ public final class SettingsStore {
 		self.includeReminders = defaults.object(forKey: Key.includeReminders) as? Bool ?? true
 		self.soundName = defaults.string(forKey: Key.soundName) ?? Self.defaultSoundName
 		self.canvasAccounts =
-			Self.decode([CanvasAccount].self, from: defaults, Key.canvasAccounts) ?? []
+			PersistedJSON.value([CanvasAccount].self, forKey: Key.canvasAccounts, in: defaults) ?? []
 		self.canvasReminderRules =
-			Self.decode([CanvasReminderRule].self, from: defaults, Key.canvasReminderRules) ?? []
+			PersistedJSON.value([CanvasReminderRule].self, forKey: Key.canvasReminderRules, in: defaults)
+			?? []
 		self.enabledCanvasCourseIDs = Set(
 			defaults.stringArray(forKey: Key.enabledCanvasCourseIDs) ?? []
 		)
@@ -126,19 +127,5 @@ public final class SettingsStore {
 		let pruned = enabledCanvasCourseIDs.intersection(identifiers)
 		guard pruned != enabledCanvasCourseIDs else { return }
 		enabledCanvasCourseIDs = pruned
-	}
-
-	private func persist<T: Encodable>(_ value: T, forKey key: String) {
-		guard let data = try? JSONEncoder().encode(value) else { return }
-		defaults.set(data, forKey: key)
-	}
-
-	private static func decode<T: Decodable>(
-		_ type: T.Type,
-		from defaults: UserDefaults,
-		_ key: String
-	) -> T? {
-		guard let data = defaults.data(forKey: key) else { return nil }
-		return try? JSONDecoder().decode(type, from: data)
 	}
 }

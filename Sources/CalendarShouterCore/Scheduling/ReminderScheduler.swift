@@ -77,13 +77,16 @@ public final class ReminderScheduler {
 		self.handledFireIDs = Set(defaults.stringArray(forKey: Key.handledFireIDs) ?? [])
 		self.lastEvaluationDate = defaults.object(forKey: Key.lastEvaluationDate) as? Date
 		self.calendarActivationDates =
-			Self.decode([String: Date].self, from: defaults, Key.calendarActivationDates) ?? [:]
+			PersistedJSON.value([String: Date].self, forKey: Key.calendarActivationDates, in: defaults)
+			?? [:]
 		self.knownEnabledCalendarIDs = settings.enabledCalendarIDs
 		self.remindersActivationDate = defaults.object(forKey: Key.remindersActivationDate) as? Date
 		self.knownIncludeReminders = settings.includeReminders
 		self.acknowledgedTimes =
-			Self.decode([String: Date].self, from: defaults, Key.acknowledgedTimes) ?? [:]
-		let snoozes = Self.decode([PersistedSnooze].self, from: defaults, Key.snoozedReminders) ?? []
+			PersistedJSON.value([String: Date].self, forKey: Key.acknowledgedTimes, in: defaults) ?? [:]
+		let snoozes =
+			PersistedJSON.value([PersistedSnooze].self, forKey: Key.snoozedReminders, in: defaults)
+			?? []
 		self.snoozes = snoozes
 		self.pendingFires = snoozes.map {
 			ReminderFire(event: $0.event, fireDate: $0.fireDate, isSnooze: true)
@@ -264,7 +267,7 @@ public final class ReminderScheduler {
 	/// event that were part of the same backlog stop asking for attention.
 	private func recordAcknowledgement(eventID: String, at date: Date) {
 		acknowledgedTimes[eventID] = date
-		persist(acknowledgedTimes, Key.acknowledgedTimes)
+		PersistedJSON.set(acknowledgedTimes, forKey: Key.acknowledgedTimes, in: defaults)
 		pendingFires.removeAll { fire in
 			guard !fire.isSnooze, fire.event.id == eventID else { return false }
 			return fire.fireDate <= date
@@ -286,7 +289,7 @@ public final class ReminderScheduler {
 		let prunedAcks = acknowledgedTimes.filter { $0.value >= start }
 		if prunedAcks.count != acknowledgedTimes.count {
 			acknowledgedTimes = prunedAcks
-			persist(acknowledgedTimes, Key.acknowledgedTimes)
+			PersistedJSON.set(acknowledgedTimes, forKey: Key.acknowledgedTimes, in: defaults)
 		}
 	}
 
@@ -304,7 +307,7 @@ public final class ReminderScheduler {
 		}
 		guard updated != calendarActivationDates else { return }
 		calendarActivationDates = updated
-		persist(calendarActivationDates, Key.calendarActivationDates)
+		PersistedJSON.set(calendarActivationDates, forKey: Key.calendarActivationDates, in: defaults)
 	}
 
 	/// A calendar only suppresses history once it has been switched on at runtime;
@@ -356,25 +359,11 @@ public final class ReminderScheduler {
 	}
 
 	private func persistSnoozes() {
-		persist(snoozes, Key.snoozedReminders)
+		PersistedJSON.set(snoozes, forKey: Key.snoozedReminders, in: defaults)
 	}
 
 	private func persistHandledFireIDs() {
 		defaults.set(handledFireIDs.sorted(), forKey: Key.handledFireIDs)
-	}
-
-	private func persist<T: Encodable>(_ value: T, _ key: String) {
-		guard let data = try? JSONEncoder().encode(value) else { return }
-		defaults.set(data, forKey: key)
-	}
-
-	private static func decode<T: Decodable>(
-		_ type: T.Type,
-		from defaults: UserDefaults,
-		_ key: String
-	) -> T? {
-		guard let data = defaults.data(forKey: key) else { return nil }
-		return try? JSONDecoder().decode(type, from: data)
 	}
 
 	/// Extracts the fire instant encoded in a `ReminderFire` identifier.
