@@ -180,8 +180,8 @@
 		"canvasEnableCourses": {
 			"extractionState": "manual",
 			"localizations": {
-				"en": { "stringUnit": { "state": "translated", "value": "Courses" } },
-				"zh-Hans": { "stringUnit": { "state": "translated", "value": "课程" } }
+				"en": { "stringUnit": { "state": "translated", "value": "Enable Courses" } },
+				"zh-Hans": { "stringUnit": { "state": "translated", "value": "启用课程" } }
 			}
 		},
 		"canvasErrorDomain": {
@@ -322,7 +322,7 @@
 				"zh-Hans": {
 					"stringUnit": {
 						"state": "translated",
-						"value": "Canvas 作业本身没有提醒设置，因此需要相对于截止时间自行设置提醒时间。"
+						"value": "Canvas 作业自身没有提醒设置，因此需要自行设置相对于截止时间的提醒时间。"
 					}
 				}
 			}

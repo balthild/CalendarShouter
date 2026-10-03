@@ -44,12 +44,14 @@ public struct SystemCanvasWebSessions: CanvasWebSessionStoring {
 
 	public func discard(identifier: UUID) {
 		Task { @MainActor in
+			Self.initializeWebKit()
 			try? await WKWebsiteDataStore.remove(forIdentifier: identifier)
 		}
 	}
 
 	public func discardUnclaimed(keeping identifiers: Set<UUID>) {
 		Task { @MainActor in
+			Self.initializeWebKit()
 			let stored = await withCheckedContinuation { continuation in
 				WKWebsiteDataStore.fetchAllDataStoreIdentifiers { continuation.resume(returning: $0) }
 			}
@@ -58,5 +60,14 @@ public struct SystemCanvasWebSessions: CanvasWebSessionStoring {
 				try? await WKWebsiteDataStore.remove(forIdentifier: identifier)
 			}
 		}
+	}
+
+	/// Both methods above hop back to WebKit's main run loop from a background queue, but WebKit
+	/// only installs that run loop once something has initialised it. As the process's first
+	/// WebKit contact — which `discardUnclaimed` is, at launch — either one dispatches onto a null
+	/// run loop and dies. Creating the default store is what initialises it.
+	@MainActor
+	private static func initializeWebKit() {
+		_ = WKWebsiteDataStore.default()
 	}
 }
