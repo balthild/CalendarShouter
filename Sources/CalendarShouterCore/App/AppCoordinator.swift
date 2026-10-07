@@ -50,13 +50,18 @@ public final class AppCoordinator {
 		}
 	)
 
-	public init(singleInstance: SingleInstanceController, defaults: UserDefaults = .standard) {
+	public init(
+		singleInstance: SingleInstanceController,
+		defaults: UserDefaults = .standard,
+		stateStore: ReminderStateStoring = UserDefaultsReminderStateStore.applicationDefault()
+	) {
 		let settings = SettingsStore(defaults: defaults)
 		let calendarService = EventKitCalendarService()
 		let canvasService = CanvasService(
 			api: URLSessionCanvasAPIClient(),
 			settings: settings
 		)
+		UserDefaultsReminderStateStore.removeLegacyKeys(from: defaults)
 
 		self.singleInstance = singleInstance
 		self.settings = settings
@@ -69,7 +74,7 @@ public final class AppCoordinator {
 			service: calendarService,
 			settings: settings,
 			canvas: canvasService,
-			defaults: defaults
+			stateStore: stateStore
 		)
 	}
 

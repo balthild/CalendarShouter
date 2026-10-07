@@ -20,26 +20,11 @@ public final class ReminderScheduler {
 	/// anything older is treated as missed.
 	private static let missedGraceInterval: TimeInterval = 60
 
-	private enum Key {
-		static let handledFireIDs = "handledFireIDs"
-		static let lastEvaluationDate = "schedulerLastEvaluationDate"
-		static let calendarActivationDates = "calendarActivationDates"
-		static let acknowledgedTimes = "reminderAcknowledgementTimes"
-		static let snoozedReminders = "snoozedReminders"
-		static let remindersActivationDate = "remindersActivationDate"
-	}
-
-	/// A snoozed reminder, persisted so it survives a relaunch.
-	private struct PersistedSnooze: Codable {
-		let event: ReminderEvent
-		let fireDate: Date
-	}
-
 	private let service: CalendarServicing
 	private let settings: SettingsStore
 	private let canvas: CanvasServicing?
 	private let clock: Clock
-	private let defaults: UserDefaults
+	private let stateStore: ReminderStateStoring
 	private let lookahead: TimeInterval
 	private let lookback: TimeInterval
 
@@ -63,7 +48,7 @@ public final class ReminderScheduler {
 		settings: SettingsStore,
 		canvas: CanvasServicing? = nil,
 		clock: Clock = SystemClock(),
-		defaults: UserDefaults = .standard,
+		stateStore: ReminderStateStoring = UserDefaultsReminderStateStore.applicationDefault(),
 		lookahead: TimeInterval = ReminderScheduler.defaultLookahead,
 		lookback: TimeInterval = ReminderScheduler.defaultLookback
 	) {
@@ -71,24 +56,19 @@ public final class ReminderScheduler {
 		self.settings = settings
 		self.canvas = canvas
 		self.clock = clock
-		self.defaults = defaults
+		self.stateStore = stateStore
 		self.lookahead = lookahead
 		self.lookback = lookback
-		self.handledFireIDs = Set(defaults.stringArray(forKey: Key.handledFireIDs) ?? [])
-		self.lastEvaluationDate = defaults.object(forKey: Key.lastEvaluationDate) as? Date
-		self.calendarActivationDates =
-			PersistedJSON.value([String: Date].self, forKey: Key.calendarActivationDates, in: defaults)
-			?? [:]
+		let state = stateStore.load()
+		self.handledFireIDs = state.handledFireIDs
+		self.lastEvaluationDate = state.lastEvaluationDate
+		self.calendarActivationDates = state.calendarActivationDates
 		self.knownEnabledCalendarIDs = settings.enabledCalendarIDs
-		self.remindersActivationDate = defaults.object(forKey: Key.remindersActivationDate) as? Date
+		self.remindersActivationDate = state.remindersActivationDate
 		self.knownIncludeReminders = settings.includeReminders
-		self.acknowledgedTimes =
-			PersistedJSON.value([String: Date].self, forKey: Key.acknowledgedTimes, in: defaults) ?? [:]
-		let snoozes =
-			PersistedJSON.value([PersistedSnooze].self, forKey: Key.snoozedReminders, in: defaults)
-			?? []
-		self.snoozes = snoozes
-		self.pendingFires = snoozes.map {
+		self.acknowledgedTimes = state.acknowledgements
+		self.snoozes = state.snoozes
+		self.pendingFires = state.snoozes.map {
 			ReminderFire(event: $0.event, fireDate: $0.fireDate, isSnooze: true)
 		}
 	}
@@ -103,7 +83,6 @@ public final class ReminderScheduler {
 		let windowEnd = now.addingTimeInterval(lookahead)
 
 		lastEvaluationDate = now
-		defaults.set(now, forKey: Key.lastEvaluationDate)
 
 		pruneBookkeeping(from: windowStart, to: windowEnd)
 		updateCalendarActivations(now: now)
@@ -146,6 +125,7 @@ public final class ReminderScheduler {
 		pendingFires = (eventFires + reminderFires + canvasFires + snoozes.map { self.fire(for: $0) })
 			.sorted { $0.fireDate < $1.fireDate }
 		scheduleNext()
+		persistState()
 	}
 
 	/// Expands a set of items' alarm times into firings, dropping the ones already dealt
@@ -202,12 +182,12 @@ public final class ReminderScheduler {
 
 		snoozes.removeAll { $0.event.id == snoozed.event.id }
 		snoozes.append(PersistedSnooze(event: snoozed.event, fireDate: snoozed.fireDate))
-		persistSnoozes()
 
 		pendingFires.removeAll { $0.isSnooze && $0.event.id == snoozed.event.id }
 		pendingFires.append(snoozed)
 		pendingFires.sort { $0.fireDate < $1.fireDate }
 		scheduleNext()
+		persistState()
 	}
 
 	/// Records that `fire` has been dealt with and will not be shown again.
@@ -215,12 +195,12 @@ public final class ReminderScheduler {
 		pendingFires.removeAll { $0.id == fire.id }
 		if fire.isSnooze {
 			snoozes.removeAll { $0.event.id == fire.event.id && $0.fireDate == fire.fireDate }
-			persistSnoozes()
 		} else {
 			markHandled([fire.id])
 		}
 		recordAcknowledgement(eventID: fire.event.id, at: clock.now)
 		scheduleNext()
+		persistState()
 	}
 
 	// MARK: - Timer management
@@ -253,6 +233,7 @@ public final class ReminderScheduler {
 		removeDeliveredSnoozes(due)
 		onFire?(due)
 		scheduleNext()
+		persistState()
 	}
 
 	// MARK: - Persisted bookkeeping
@@ -260,14 +241,12 @@ public final class ReminderScheduler {
 	private func markHandled(_ identifiers: [String]) {
 		guard !identifiers.isEmpty else { return }
 		handledFireIDs.formUnion(identifiers)
-		persistHandledFireIDs()
 	}
 
 	/// Remembers that the user dealt with `eventID`, so older alarms of the same
 	/// event that were part of the same backlog stop asking for attention.
 	private func recordAcknowledgement(eventID: String, at date: Date) {
 		acknowledgedTimes[eventID] = date
-		PersistedJSON.set(acknowledgedTimes, forKey: Key.acknowledgedTimes, in: defaults)
 		pendingFires.removeAll { fire in
 			guard !fire.isSnooze, fire.event.id == eventID else { return false }
 			return fire.fireDate <= date
@@ -284,12 +263,10 @@ public final class ReminderScheduler {
 		}
 		if prunedHandled.count != handledFireIDs.count {
 			handledFireIDs = prunedHandled
-			persistHandledFireIDs()
 		}
 		let prunedAcks = acknowledgedTimes.filter { $0.value >= start }
 		if prunedAcks.count != acknowledgedTimes.count {
 			acknowledgedTimes = prunedAcks
-			PersistedJSON.set(acknowledgedTimes, forKey: Key.acknowledgedTimes, in: defaults)
 		}
 	}
 
@@ -307,7 +284,6 @@ public final class ReminderScheduler {
 		}
 		guard updated != calendarActivationDates else { return }
 		calendarActivationDates = updated
-		PersistedJSON.set(calendarActivationDates, forKey: Key.calendarActivationDates, in: defaults)
 	}
 
 	/// A calendar only suppresses history once it has been switched on at runtime;
@@ -325,14 +301,11 @@ public final class ReminderScheduler {
 		knownIncludeReminders = enabled
 
 		if !enabled {
-			guard remindersActivationDate != nil else { return }
 			remindersActivationDate = nil
-			defaults.removeObject(forKey: Key.remindersActivationDate)
 			return
 		}
 		guard becameEnabled else { return }
 		remindersActivationDate = now
-		defaults.set(now, forKey: Key.remindersActivationDate)
 	}
 
 	/// Reminders only suppress history once they have been switched on at runtime; when they
@@ -355,15 +328,22 @@ public final class ReminderScheduler {
 		snoozes.removeAll { snooze in
 			delivered.contains { $0.event.id == snooze.event.id && $0.fireDate == snooze.fireDate }
 		}
-		persistSnoozes()
 	}
 
-	private func persistSnoozes() {
-		PersistedJSON.set(snoozes, forKey: Key.snoozedReminders, in: defaults)
-	}
-
-	private func persistHandledFireIDs() {
-		defaults.set(handledFireIDs.sorted(), forKey: Key.handledFireIDs)
+	/// Called at the end of every entry point that changes bookkeeping, so the stored fields are
+	/// always a consistent set. One that delivers due fires on the way through writes twice; the
+	/// second snapshot is identical.
+	private func persistState() {
+		stateStore.save(
+			ReminderState(
+				handledFireIDs: handledFireIDs,
+				lastEvaluationDate: lastEvaluationDate,
+				calendarActivationDates: calendarActivationDates,
+				remindersActivationDate: remindersActivationDate,
+				acknowledgements: acknowledgedTimes,
+				snoozes: snoozes
+			)
+		)
 	}
 
 	/// Extracts the fire instant encoded in a `ReminderFire` identifier.

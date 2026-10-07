@@ -102,3 +102,21 @@ final class FakeCanvasWebSessions: CanvasWebSessionStoring {
 
 	func discardUnclaimed(keeping identifiers: Set<UUID>) { reclaimRequests.append(identifiers) }
 }
+
+/// State store backed by memory, so a test that does not care where the bookkeeping lives never
+/// has to make a `UserDefaults` suite.
+final class InMemoryReminderStateStore: ReminderStateStoring {
+	private(set) var state: ReminderState
+	private(set) var saveCount = 0
+
+	init(state: ReminderState = ReminderState()) {
+		self.state = state
+	}
+
+	func load() -> ReminderState { state }
+
+	func save(_ state: ReminderState) {
+		self.state = state
+		saveCount += 1
+	}
+}

@@ -72,7 +72,7 @@ struct ReminderSchedulerTests {
 			service: service,
 			settings: settings,
 			clock: clock,
-			defaults: defaults
+			stateStore: UserDefaultsReminderStateStore(defaults: defaults)
 		)
 	}
 
@@ -359,7 +359,7 @@ struct ReminderSchedulerTests {
 			service: service,
 			settings: makeSettings(defaults: defaults),
 			clock: clock,
-			defaults: defaults,
+			stateStore: UserDefaultsReminderStateStore(defaults: defaults),
 			lookahead: lookahead
 		)
 		scheduler.reload()
@@ -494,7 +494,9 @@ struct ReminderSchedulerTests {
 		let defaults = makeDefaults()
 		let now = referenceDate
 		// The app last looked 70 days ago, beyond the 30-day cap.
-		defaults.set(now.addingTimeInterval(-70 * 24 * 3600), forKey: "schedulerLastEvaluationDate")
+		let stateStore = InMemoryReminderStateStore(
+			state: ReminderState(lastEvaluationDate: now.addingTimeInterval(-70 * 24 * 3600))
+		)
 		let clock = FakeClock(now: now)
 		let service = FakeCalendarService()
 		service.eventsToReturn = [
@@ -502,11 +504,11 @@ struct ReminderSchedulerTests {
 			makeEvent(id: "recent", fireDates: [now.addingTimeInterval(-20 * 24 * 3600)]),
 		]
 
-		let scheduler = makeScheduler(
+		let scheduler = ReminderScheduler(
 			service: service,
 			settings: makeSettings(defaults: defaults),
 			clock: clock,
-			defaults: defaults
+			stateStore: stateStore
 		)
 		var fired: [ReminderFire] = []
 		scheduler.onFire = { fired.append(contentsOf: $0) }

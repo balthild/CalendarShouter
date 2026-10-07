@@ -10,12 +10,50 @@ private func makeDefaults() -> UserDefaults {
 	return defaults
 }
 
+private struct Note: Codable, Equatable {
+	var title: String
+	var count: Int
+}
+
 @Suite("PersistedJSON")
 struct PersistedJSONTests {
 	@Test("A value survives a round trip")
 	func roundTrip() {
 		let defaults = makeDefaults()
 		PersistedJSON.set(["a", "b"], forKey: "key", in: defaults)
+		#expect(PersistedJSON.value([String].self, forKey: "key", in: defaults) == ["a", "b"])
+	}
+
+	@Test("A struct is stored as a dictionary rather than a blob")
+	func storesAStructAsADictionary() {
+		let defaults = makeDefaults()
+		let note = Note(title: "Standup", count: 2)
+
+		PersistedJSON.set(note, forKey: "key", in: defaults)
+
+		#expect(defaults.dictionary(forKey: "key") != nil)
+		#expect(defaults.data(forKey: "key") == nil)
+		#expect(PersistedJSON.value(Note.self, forKey: "key", in: defaults) == note)
+	}
+
+	@Test("A value containing a null stays as text, the only shape UserDefaults accepts")
+	func nullKeepsTheValueAsText() {
+		// `UserDefaults` aborts the process on `NSNull` rather than reporting an error, so a value
+		// containing one must not be converted to a property-list object.
+		let defaults = makeDefaults()
+		let sparse: [String: Int?] = ["present": 1, "absent": nil]
+
+		PersistedJSON.set(sparse, forKey: "key", in: defaults)
+
+		#expect(defaults.data(forKey: "key") != nil)
+		#expect(PersistedJSON.value([String: Int?].self, forKey: "key", in: defaults) == sparse)
+	}
+
+	@Test("Text written by an earlier version still decodes")
+	func legacyTextStillDecodes() throws {
+		let defaults = makeDefaults()
+		defaults.set(try JSONEncoder().encode(["a", "b"]), forKey: "key")
+
 		#expect(PersistedJSON.value([String].self, forKey: "key", in: defaults) == ["a", "b"])
 	}
 

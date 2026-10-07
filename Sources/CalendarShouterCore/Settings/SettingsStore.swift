@@ -89,10 +89,17 @@ public final class SettingsStore {
 		self.includeReminders = defaults.object(forKey: Key.includeReminders) as? Bool ?? true
 		self.soundName = defaults.string(forKey: Key.soundName) ?? Self.defaultSoundName
 		self.canvasAccounts =
-			PersistedJSON.value([CanvasAccount].self, forKey: Key.canvasAccounts, in: defaults) ?? []
+			PersistedJSON.value(
+				[CanvasAccount].self,
+				forKey: Key.canvasAccounts,
+				in: defaults
+			) ?? []
 		self.canvasReminderRules =
-			PersistedJSON.value([CanvasReminderRule].self, forKey: Key.canvasReminderRules, in: defaults)
-			?? []
+			PersistedJSON.value(
+				[CanvasReminderRule].self,
+				forKey: Key.canvasReminderRules,
+				in: defaults
+			) ?? []
 		self.enabledCanvasCourseIDs = Set(
 			defaults.stringArray(forKey: Key.enabledCanvasCourseIDs) ?? []
 		)

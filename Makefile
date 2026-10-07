@@ -18,6 +18,8 @@ SHELL := /bin/sh
 
 APP_NAME := CalendarShouter
 BUNDLE_ID := com.balthild.CalendarShouter
+# Mirrors UserDefaultsReminderStateStore.appSuiteName.
+STATE_SUITE := $(BUNDLE_ID).state
 CORE_TARGET := CalendarShouterCore
 EXEC_TARGET := CalendarShouter
 
@@ -241,10 +243,11 @@ reset-permissions: ## Forget the app's calendar and reminders permission decisio
 	tccutil reset Reminders $(BUNDLE_ID)
 	@printf '%s\n' "Reset. Relaunch with 'make run' to be asked again."
 
-reset-data: ## Forget the app's preferences, restoring the out-of-the-box state.
+reset-data: ## Forget the app's preferences and the scheduler's bookkeeping.
 	@pkill -f "$(APP_BUNDLE)/Contents/MacOS" 2>/dev/null || true
 	@-defaults delete $(BUNDLE_ID)
-	@printf '%s\n' "Preferences cleared (menu bar icon shown, every calendar off, reminders on, Glass)."
+	@-defaults delete $(STATE_SUITE)
+	@printf '%s\n' "Preferences and bookkeeping cleared (menu bar icon shown, every calendar off, reminders on, Glass)."
 
 clean: ## Remove all build products.
 	rm -rf "$(BUILD_DIR)"

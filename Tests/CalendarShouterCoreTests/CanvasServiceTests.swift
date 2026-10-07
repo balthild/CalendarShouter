@@ -580,7 +580,7 @@ struct CanvasSchedulingTests {
 			settings: settings,
 			canvas: canvas,
 			clock: clock,
-			defaults: defaults
+			stateStore: UserDefaultsReminderStateStore(defaults: defaults)
 		)
 	}
 
