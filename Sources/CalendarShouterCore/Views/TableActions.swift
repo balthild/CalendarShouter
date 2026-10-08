@@ -1,4 +1,3 @@
-import AppKit
 import SwiftUI
 
 /// The strip of `+` and `−` that sits under a table.
@@ -14,8 +13,6 @@ struct TableActions<ID: Hashable>: View {
 	/// The table's selection; nothing selected means there is nothing to remove.
 	let selection: Binding<ID?>
 	let onRemove: (ID) -> Void
-
-	@Environment(\.displayScale) private var displayScale
 
 	var body: some View {
 		HStack(spacing: 4) {
@@ -49,9 +46,11 @@ struct TableActions<ID: Hashable>: View {
 		.padding(.horizontal, 5)
 		.background(.primary.opacity(0.037))
 		.overlay(alignment: .top) {
+			// Continues the table header's bottom border, which AppKit draws one point tall
+			// in the label colour at roughly 6.5%.
 			Rectangle()
-				.fill(Color(nsColor: .separatorColor))
-				.frame(height: 1 / displayScale)
+				.fill(Color.primary.opacity(0.065))
+				.frame(height: 1)
 		}
 	}
 }
