@@ -17,8 +17,6 @@ final class SettingsTabButton: NSButton {
 	static let contentSpacing: CGFloat = 2
 
 	static let cornerRadius: CGFloat = 7
-	static let bottomSpacing: CGFloat = 2
-
 	static let layoutSize = CGSize(width: 64, height: 48)
 	static let layoutRect = NSRect(origin: .zero, size: layoutSize)
 

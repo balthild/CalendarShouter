@@ -258,27 +258,13 @@ public final class SettingsWindowController: NSObject, NSToolbarDelegate {
 		guard let tab = SettingsTab.from(toolbarItemIdentifier: identifier) else { return nil }
 
 		let button = SettingsTabButton(tab: tab)
-		button.translatesAutoresizingMaskIntoConstraints = false
 		button.setSelected(tab == selection.tab)
 		button.onSelect = { [weak self] tab in self?.selection.tab = tab }
 		tabButtons[tab] = button
 
-		let container = NSView()
-		container.translatesAutoresizingMaskIntoConstraints = false
-		container.addSubview(button)
-		NSLayoutConstraint.activate([
-			container.leadingAnchor.constraint(equalTo: button.leadingAnchor),
-			container.trailingAnchor.constraint(equalTo: button.trailingAnchor),
-			container.topAnchor.constraint(equalTo: button.topAnchor),
-			container.bottomAnchor.constraint(
-				equalTo: button.bottomAnchor,
-				constant: SettingsTabButton.bottomSpacing
-			),
-		])
-
 		let item = NSToolbarItem(itemIdentifier: identifier)
 		item.label = String(localizable: tab.localizedLabel)
-		item.view = container
+		item.view = button
 
 		return item
 	}
