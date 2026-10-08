@@ -42,18 +42,39 @@ private struct SettingsTopEdge: ViewModifier {
 					.frame(height: 1 / displayScale)
 
 				if isScrolled {
-					// Matches the height of the shadow a system settings window draws under
-					// its toolbar; the opacity is what tunes its weight.
-					LinearGradient(
-						colors: [Color.black.opacity(0.1), .clear],
-						startPoint: .top,
-						endPoint: .bottom
-					)
-					.frame(height: 1.8)
+					scrollShadow(initial: 0.125, retention: 0.6)
 				}
 			}
 			.allowsHitTesting(false)
 		}
+	}
+
+	/// The scroll-edge shadow: `initial` opacity, each physical pixel retaining `retention` of the
+	/// previous — one segment per pixel, so its height in pixels (and points) follows from
+	/// `retention` as well.
+	private func scrollShadow(initial: Double, retention: Double) -> some View {
+		let steps = scrollShadowSteps(initial: initial, retention: retention)
+
+		return LinearGradient(
+			stops: (0...steps).map { step in
+				.init(
+					color: .primary.opacity(initial * pow(retention, Double(step))),
+					location: Double(step) / Double(steps)
+				)
+			},
+			startPoint: .top,
+			endPoint: .bottom
+		)
+		.frame(height: Double(steps) / displayScale)
+	}
+
+	/// The fewest steps whose last segment still shifts the opacity by one 8-bit level; a further
+	/// step could only be drawn as the background colour, so it is dropped.
+	private func scrollShadowSteps(initial: Double, retention: Double) -> Int {
+		let visible = 1 / 255.0
+		let first = initial * (1 - retention)
+		guard first > visible else { return 1 }
+		return Int(ceil(log(visible / first) / log(retention))) + 1
 	}
 }
 
