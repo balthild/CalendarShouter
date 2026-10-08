@@ -111,6 +111,7 @@ private struct ScrollEdgeObserver: NSViewRepresentable {
 		nonisolated(unsafe) private var observers: [NSObjectProtocol] = []
 		nonisolated(unsafe) private weak var observedClipView: NSClipView?
 		private var isPublishScheduled = false
+		private var isRestoringTop = false
 
 		override func viewDidMoveToSuperview() {
 			super.viewDidMoveToSuperview()
@@ -144,16 +145,43 @@ private struct ScrollEdgeObserver: NSViewRepresentable {
 					object: clipView,
 					queue: .main
 				) { [weak self] _ in
-					MainActor.assumeIsolated { self?.publish() }
+					MainActor.assumeIsolated {
+						self?.restoreTopForNewPane()
+						self?.publish()
+					}
 				}
 			)
 			updateScrollerVisibility()
 			publish()
 		}
 
+		/// Puts a pane that has just been created back at its top edge.
+		///
+		/// While such a pane is briefly taller than the window, AppKit scrolls it on its own: the
+		/// form's layout compensates for the overflow, and a `Table` inside it then asks to be
+		/// scrolled into sight. Neither scroll belongs to the user — the pane has never been scrolled
+		/// — and either would be drawn as the pane opening part-way down.
+		///
+		/// Corrected here, in the bounds notification, rather than in the deferred `publish()`: a
+		/// layout pass can run during the window's display, and a block enqueued then is drained a
+		/// run loop iteration later — after the frame with the offset has already been committed.
+		/// The correction lands inside the same layout pass instead, before the pane is drawn.
+		private func restoreTopForNewPane() {
+			guard !isRestoringTop, SettingsWindowResize.isSettlingNewPane else { return }
+			guard let clipView = observedClipView, let scrollView = clipView.enclosingScrollView else {
+				return
+			}
+			let restingOrigin = min(0, -scrollView.contentInsets.top)
+			guard clipView.bounds.origin.y > restingOrigin + 0.5 else { return }
+			isRestoringTop = true
+			clipView.scroll(to: NSPoint(x: clipView.bounds.origin.x, y: restingOrigin))
+			scrollView.reflectScrolledClipView(clipView)
+			isRestoringTop = false
+		}
+
 		private func updateScrollerVisibility() {
 			guard let scrollView = observedClipView?.enclosingScrollView else { return }
-			let isEnabled = !SettingsWindowResize.isAnimating
+			let isEnabled = !SettingsWindowResize.suppressesScrollers
 			guard scrollView.hasVerticalScroller != isEnabled else { return }
 			scrollView.hasVerticalScroller = isEnabled
 		}

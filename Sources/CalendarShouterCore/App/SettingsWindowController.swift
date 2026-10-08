@@ -22,6 +22,14 @@ public final class SettingsWindowController: NSObject, NSToolbarDelegate {
 	private var contentHostingView: ContentSizingHostingView<AnyView>?
 	private var isPresented = false
 	private var tabButtons: [SettingsTab: SettingsTabButton] = [:]
+
+	/// The settle the window is currently in, from a tab change until it has been sized for the
+	/// pane that change selected.
+	private var settleToken: Int?
+	/// True while the window is animating to the pane's height. A report taken mid-animation comes
+	/// from a pane laid out at an intermediate size, so it must not start a second animation.
+	private var isAnimating = false
+
 	nonisolated(unsafe) private var closeObserver: NSObjectProtocol?
 
 	public init(
@@ -136,6 +144,7 @@ public final class SettingsWindowController: NSObject, NSToolbarDelegate {
 		window.contentView = hostingView
 		selection.onTabChange = { [weak self] _ in
 			self?.updateTabButtons()
+			self?.beginSettlingForPaneChange()
 		}
 
 		closeObserver = NotificationCenter.default.addObserver(
@@ -169,7 +178,7 @@ public final class SettingsWindowController: NSObject, NSToolbarDelegate {
 		// Mid-animation the content is laid out at an intermediate size, so a report taken then
 		// would start a second animation from the wrong height. The animation's completion
 		// re-measures once it has settled, so a change made in the meantime is not lost.
-		guard !SettingsWindowResize.isAnimating else { return }
+		guard !isAnimating else { return }
 
 		let fittedSize = NSSize(
 			width: SettingsPaneMetrics.width,
@@ -183,12 +192,17 @@ public final class SettingsWindowController: NSObject, NSToolbarDelegate {
 			width: fittedFrame.width,
 			height: fittedFrame.height
 		)
-		guard targetFrame.size != current.size else { return }
-		// Growing from a short pane to a tall one leaves the content momentarily taller than
-		// the window, which makes an overlay scroller appear and then vanish again once the
-		// animation finishes. The scrollers are held off until it has; the flag covers the
-		// pane's own scroll view, which SwiftUI only creates part-way through the animation.
-		let token = SettingsWindowResize.begin()
+		guard targetFrame.size != current.size else {
+			// The window already has this pane's height, so there is nothing to animate and the
+			// settle ends here.
+			settleScrollers()
+			return
+		}
+		// A pane that grows as its content arrives is resized without a tab change, so it has no
+		// settle of its own to extend.
+		let token = settleToken ?? SettingsWindowResize.begin()
+		isAnimating = true
+		settleToken = token
 		Self.setVerticalScrollersHidden(true, in: window.contentView)
 		NSAnimationContext.runAnimationGroup { context in
 			context.duration = 0.2
@@ -196,13 +210,45 @@ public final class SettingsWindowController: NSObject, NSToolbarDelegate {
 			window.animator().setFrame(targetFrame, display: true)
 		} completionHandler: { [weak self] in
 			MainActor.assumeIsolated {
-				// A superseded animation's completion must not re-show the scrollers while
-				// the current one is still animating.
-				guard SettingsWindowResize.end(token) else { return }
-				Self.setVerticalScrollersHidden(false, in: window.contentView)
+				self?.isAnimating = false
+				// A superseded animation is one the tab has already moved on from: the pane now
+				// showing still has to be measured, so re-measure instead of settling for it.
+				guard SettingsWindowResize.settle(token) else {
+					self?.contentHostingView?.reportContentHeight()
+					return
+				}
+				self?.settleToken = nil
+				self?.showScrollers()
 				self?.contentHostingView?.reportContentHeight()
 			}
 		}
+	}
+
+	/// Ends the settle started by the current tab change, if it has not ended already.
+	///
+	/// Only reached when no animation is in flight — `resizeToFitContentHeight` returns before
+	/// this when one is — so there is no `isAnimating` to clear here.
+	private func settleScrollers() {
+		guard let token = settleToken, SettingsWindowResize.settle(token) else { return }
+		settleToken = nil
+		showScrollers()
+	}
+
+	private func showScrollers() {
+		guard let window else { return }
+		Self.setVerticalScrollersHidden(false, in: window.contentView)
+	}
+
+	/// Keeps the scrollers off from the very start of a pane change.
+	///
+	/// SwiftUI builds the new pane — and its scroll view — a run loop turn before the resize
+	/// that makes room for it, so starting the settle in `resizeToFitContentHeight` is already
+	/// too late: for that turn the pane's content is taller than the window and a scroller is
+	/// drawn.
+	private func beginSettlingForPaneChange() {
+		settleToken = SettingsWindowResize.begin(newPane: true)
+		guard let window else { return }
+		Self.setVerticalScrollersHidden(true, in: window.contentView)
 	}
 
 	private static func setVerticalScrollersHidden(_ hidden: Bool, in view: NSView?) {
