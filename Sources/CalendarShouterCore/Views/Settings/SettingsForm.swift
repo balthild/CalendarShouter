@@ -113,6 +113,21 @@ private struct ScrollEdgeObserver: NSViewRepresentable {
 		private var isPublishScheduled = false
 		private var isRestoringTop = false
 
+		/// How far past its resting origin the clip view must travel to count as scrolled.
+		///
+		/// The first step of a trackpad scroll moves it half a point, so this has to stay well
+		/// below that: the half-point tolerance this used to carry swallowed exactly that first
+		/// step, so the toolbar took on its material a step before the shadow appeared. Nothing
+		/// else needs it — layout run past a resize is already corrected by the time the coalesced
+		/// publish reads the origin — so it only has to absorb floating-point noise.
+		private static let scrollTolerance: CGFloat = 0.001
+
+		/// The clip origin the scroll view rests at when it is scrolled to the top: the negative
+		/// of its top content inset, but never above zero.
+		private static func restingOrigin(of scrollView: NSScrollView) -> CGFloat {
+			min(0, -scrollView.contentInsets.top)
+		}
+
 		override func viewDidMoveToSuperview() {
 			super.viewDidMoveToSuperview()
 			attach()
@@ -171,8 +186,8 @@ private struct ScrollEdgeObserver: NSViewRepresentable {
 			guard let clipView = observedClipView, let scrollView = clipView.enclosingScrollView else {
 				return
 			}
-			let restingOrigin = min(0, -scrollView.contentInsets.top)
-			guard clipView.bounds.origin.y > restingOrigin + 0.5 else { return }
+			let restingOrigin = Self.restingOrigin(of: scrollView)
+			guard clipView.bounds.origin.y > restingOrigin + Self.scrollTolerance else { return }
 			isRestoringTop = true
 			clipView.scroll(to: NSPoint(x: clipView.bounds.origin.x, y: restingOrigin))
 			scrollView.reflectScrolledClipView(clipView)
@@ -205,10 +220,8 @@ private struct ScrollEdgeObserver: NSViewRepresentable {
 			guard let clipView = observedClipView, let scrollView = clipView.enclosingScrollView else {
 				return
 			}
-			// The clip view rests at the negative of the scroll view's top content inset,
-			// but never above zero.
-			let restingOrigin = min(0, -scrollView.contentInsets.top)
-			onScroll?(clipView.bounds.origin.y > restingOrigin + 0.5)
+			let restingOrigin = Self.restingOrigin(of: scrollView)
+			onScroll?(clipView.bounds.origin.y > restingOrigin + Self.scrollTolerance)
 		}
 
 		private static func firstScrollView(in view: NSView?) -> NSScrollView? {

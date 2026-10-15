@@ -222,9 +222,10 @@ notarize: ## Notarize and staple the packaged app (requires Developer ID + NOTAR
 run: sign ## Build, bundle and launch the app.
 	open "$(APP_BUNDLE)"
 
-rerun: sign ## Build, bundle, and relaunch the app with settings window open.
+rerun: APP_ARGS ?= --open-settings
+rerun: sign ## Build, bundle, and relaunch the app with arguments.
 	pkill -f "$(APP_BUNDLE)/Contents/MacOS/$(APP_NAME)" || true
-	open -n "$(APP_BUNDLE)" --args --open-settings
+	open -n "$(APP_BUNDLE)" --args $(APP_ARGS)
 
 demo: sign ## Show a demo calendar reminder to inspect the panel.
 	open -n "$(APP_BUNDLE)" --args --demo-calendar
