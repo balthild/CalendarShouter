@@ -48,8 +48,9 @@ SIGNING_SOURCE ?= op
 OP_ITEM_REF ?= CalendarShouter Signing
 SIGN_OPTIONS ?=
 
-GIT_VERSION := $(shell git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//')
-VERSION ?= $(if $(GIT_VERSION),$(GIT_VERSION),0.0.0)
+SVU_PKG := 'nixpkgs\#svu'
+SVU_OUT := $(shell nix run --inputs-from . $(SVU_PKG) -- --tag.prefix="" current)
+SEMVER ?= $(if $(SVU_OUT),$(SVU_OUT),0.0.0)
 BUILD_NUMBER ?= $(shell git rev-list --count HEAD 2>/dev/null || echo 1)
 
 BUILD_DIR := .build
@@ -85,7 +86,7 @@ PLIST_BUDDY := /usr/libexec/PlistBuddy
 #   make build-keychain-helper    build it, failing with the new cdhash if it no
 #                                 longer reproduces the pin
 #   set HELPER_CDHASH to that value, then
-#   make stage-keychain-helper    adopt it: overwrite the tracked binary and git add
+#   make adopt-keychain-helper    adopt it: overwrite the tracked binary and git add
 HELPER_NAME := $(APP_NAME)KeychainHelper
 HELPER_BIN := $(BUILD_DIR)/$(HELPER_NAME)
 HELPER_TRACKED := Tools/KeychainHelper/$(HELPER_NAME)
@@ -96,15 +97,15 @@ HELPER_ATTR := .\#keychain-helper
 # hash, so changing it makes every installed copy ask for permission again. That
 # is invisible at build time and only shows up on users' machines, so it is
 # checked instead of trusted. The value is the helper BEFORE signing, which keeps
-# it independent of the certificate. `stage-keychain-helper` maintains it.
+# it independent of the certificate. `adopt-keychain-helper` maintains it.
 HELPER_CDHASH := 559514fceee8a1c783543c1bd5b7a4c42e4b2611
 
 .DEFAULT_GOAL := help
 
-.PHONY: help format lint localize build test icon build-keychain-helper stage-keychain-helper app sign signing-cert package notarize run demo demo-missed demo-reminder dev reset-permissions reset-data clean release
+.PHONY: help format lint localize build test icon build-keychain-helper adopt-keychain-helper app sign signing-cert package notarize run demo demo-missed demo-reminder dev reset-permissions reset-data clean release
 
 help: ## Show this help.
-	@printf '%s\n' "CalendarShouter $(VERSION) — available targets:"
+	@printf '%s\n' "CalendarShouter $(SEMVER) — available targets:"
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%s\t\033[0m %s\n", $$1, $$2}' | column -t -s $$'\t'
 
 format: ## Format Swift sources in place.
@@ -147,18 +148,20 @@ build-keychain-helper: ## Build into $(BUILD_DIR) and fail if it no longer repro
 			"" \
 			"The helper's source, or the toolchain the flake pins, has changed. If" \
 			"that is intended, set HELPER_CDHASH in this Makefile to $$actual and run" \
-			"'make stage-keychain-helper'; every existing install will then authorise" \
+			"'make adopt-keychain-helper'; every existing install will then authorise" \
 			"once more."; \
 		exit 1; \
 	fi
 	@printf '%s\n' "Keychain helper build reproduces the pin."
 
-stage-keychain-helper: build-keychain-helper ## Adopt the built helper: overwrite the tracked binary and git add.
+adopt-keychain-helper: build-keychain-helper ## Adopt the built helper: overwrite the tracked binary and git add.
 	@install -m 755 "$(HELPER_BIN)" "$(HELPER_TRACKED)"
 	@git add "$(HELPER_TRACKED)"
 	@printf '%s\n' "Staged $(HELPER_TRACKED); the Makefile is left for you to review and commit."
 
 app: build icon ## Assemble $(APP_NAME).app from the tracked helper (no Nix needed).
+	@printf '%s\n' "Assembling $(BUNDLE)"
+
 	@actual=$$(codesign -d -vvv "$(HELPER_TRACKED)" 2>&1 | sed -n 's/^CDHash=//p'); \
 	if [ "$$actual" != "$(HELPER_CDHASH)" ]; then \
 		printf '%s\n' \
@@ -167,14 +170,19 @@ app: build icon ## Assemble $(APP_NAME).app from the tracked helper (no Nix need
 			"  tracked:    $${actual:-<none>}" \
 			"" \
 			"Packaging this would ship a helper whose keychain items every user has" \
-			"to authorise again. Run 'make stage-keychain-helper' if the change is" \
+			"to authorise again. Run 'make adopt-keychain-helper' if the change is" \
 			"intended, or restore Tools/KeychainHelper/$(HELPER_NAME)."; \
 		exit 1; \
 	fi
+
 	@rm -rf "$(APP_BUNDLE)"
 	@mkdir -p "$(APP_BUNDLE)/Contents/MacOS" "$(APP_BUNDLE)/Contents/Resources"
+
+	@printf '%s\n' "Copying binaries..."
 	@cp "$(BIN_DIR)/$(EXEC_TARGET)" "$(APP_BUNDLE)/Contents/MacOS/$(EXEC_TARGET)"
 	@cp "$(HELPER_TRACKED)" "$(APP_BUNDLE)/Contents/MacOS/$(HELPER_NAME)"
+
+	@printf '%s\n' "Copying resources..."
 	@if [ -d "$(RESOURCE_BUNDLE)" ]; then cp -R "$(RESOURCE_BUNDLE)" "$(APP_BUNDLE)/Contents/Resources/"; fi
 	@if [ -d "$(INFO_PLIST_LOCALIZATION)" ]; then \
 		for dir in "$(INFO_PLIST_LOCALIZATION)"/*.lproj; do \
@@ -182,10 +190,12 @@ app: build icon ## Assemble $(APP_NAME).app from the tracked helper (no Nix need
 		done; \
 	fi
 	@if [ -f "$(ICNS)" ]; then cp "$(ICNS)" "$(APP_BUNDLE)/Contents/Resources/AppIcon.icns"; fi
+
 	@cp "$(INFO_PLIST)" "$(APP_BUNDLE)/Contents/Info.plist"
-	@$(PLIST_BUDDY) -c "Set :CFBundleShortVersionString $(VERSION)" "$(APP_BUNDLE)/Contents/Info.plist"
+	@$(PLIST_BUDDY) -c "Set :CFBundleShortVersionString $(SEMVER)" "$(APP_BUNDLE)/Contents/Info.plist"
 	@$(PLIST_BUDDY) -c "Set :CFBundleVersion $(BUILD_NUMBER)" "$(APP_BUNDLE)/Contents/Info.plist"
 	@plutil -lint "$(APP_BUNDLE)/Contents/Info.plist"
+
 	@printf '%s\n' "Assembled $(APP_BUNDLE)"
 
 sign: app ## Codesign the app bundle (see SIGN_IDENTITY).
@@ -199,28 +209,8 @@ signing-cert: ## Create the self-signed certificate the app is signed with.
 
 package: sign ## Produce a distributable zip in .build/dist.
 	@mkdir -p "$(DIST_DIR)"
-	ditto -c -k --keepParent "$(APP_BUNDLE)" "$(DIST_DIR)/$(APP_NAME)-$(VERSION).zip"
-	@printf '%s\n' "Created $(DIST_DIR)/$(APP_NAME)-$(VERSION).zip"
-
-notarize: ## Notarize and staple the packaged app (requires Developer ID + NOTARY_PROFILE).
-	@case "$(SIGN_IDENTITY)" in \
-	-|auto) \
-		printf '%s\n' \
-			"error: notarisation needs a Developer ID Application identity." \
-			"Set SIGN_IDENTITY to it and SIGN_OPTIONS='--options runtime --timestamp'."; \
-		exit 1; \
-		;; \
-	esac
-	@if [ -z "$$NOTARY_PROFILE" ]; then \
-		printf '%s\n' "error: set NOTARY_PROFILE to a notarytool keychain profile."; \
-		exit 1; \
-	fi
-	xcrun notarytool submit "$(DIST_DIR)/$(APP_NAME)-$(VERSION).zip" \
-		--keychain-profile "$$NOTARY_PROFILE" --wait
-	xcrun stapler staple "$(APP_BUNDLE)"
-
-run: sign ## Build, bundle and launch the app.
-	open "$(APP_BUNDLE)"
+	ditto -c -k --keepParent "$(APP_BUNDLE)" "$(DIST_DIR)/$(APP_NAME)-v$(SEMVER).zip"
+	@printf '%s\n' "Created $(DIST_DIR)/$(APP_NAME)-v$(SEMVER).zip"
 
 rerun: APP_ARGS ?= --open-settings
 rerun: sign ## Build, bundle, and relaunch the app with arguments.
@@ -254,7 +244,6 @@ clean: ## Remove all build products.
 	rm -rf "$(BUILD_DIR)"
 	@find "$(RESOURCES_DIR)" -maxdepth 1 -name '*.lproj' -type d -exec rm -rf {} + 2>/dev/null || true
 
-release: ## Clean release build, tested and packaged.
-	$(MAKE) clean
-	$(MAKE) CONFIG=release test
-	$(MAKE) CONFIG=release package
+release: KIND ?= please-specify
+release: ## Clean release build: tested, packaged, and upload to GitHub.
+	Tools/release.sh "$(KIND)"

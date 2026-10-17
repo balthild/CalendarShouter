@@ -46,18 +46,18 @@ public struct SoundCatalog: Sendable {
 		var namesByDirectory: [[String]] = []
 
 		for directory in directories {
-			let contents =
-				(try? fileManager.contentsOfDirectory(
-					at: directory,
-					includingPropertiesForKeys: nil,
-					options: [.skipsHiddenFiles]
-				)) ?? []
-			let names =
-				contents
+			let contents = try? fileManager.contentsOfDirectory(
+				at: directory,
+				includingPropertiesForKeys: nil,
+				options: [.skipsHiddenFiles]
+			)
+
+			let names = (contents ?? [])
 				.filter { Self.soundFileExtensions.contains($0.pathExtension.lowercased()) }
 				.map { $0.deletingPathExtension().lastPathComponent }
 				.sorted { $0.localizedStandardCompare($1) == .orderedAscending }
 				.filter { seen.insert($0).inserted }
+
 			namesByDirectory.append(names)
 		}
 
