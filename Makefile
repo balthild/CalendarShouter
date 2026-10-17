@@ -214,7 +214,7 @@ package: sign ## Produce a distributable zip in .build/dist.
 
 rerun: APP_ARGS ?= --open-settings
 rerun: sign ## Build, bundle, and relaunch the app with arguments.
-	pkill -f "$(APP_BUNDLE)/Contents/MacOS/$(APP_NAME)" || true
+	pkill -f "Contents/MacOS/$(APP_NAME)" || true
 	open -n "$(APP_BUNDLE)" --args $(APP_ARGS)
 
 demo: sign ## Show a demo calendar reminder to inspect the panel.
@@ -235,7 +235,7 @@ reset-permissions: ## Forget the app's calendar and reminders permission decisio
 	@printf '%s\n' "Reset. Relaunch with 'make run' to be asked again."
 
 reset-data: ## Forget the app's preferences and the scheduler's bookkeeping.
-	@pkill -f "$(APP_BUNDLE)/Contents/MacOS" 2>/dev/null || true
+	@pkill -f "Contents/MacOS" 2>/dev/null || true
 	@-defaults delete $(BUNDLE_ID)
 	@-defaults delete $(STATE_SUITE)
 	@printf '%s\n' "Preferences and bookkeeping cleared (menu bar icon shown, every calendar off, reminders on, Glass)."

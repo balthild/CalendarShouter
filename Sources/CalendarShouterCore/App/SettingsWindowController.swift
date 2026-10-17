@@ -57,11 +57,21 @@ public final class SettingsWindowController: NSObject, NSToolbarDelegate {
 
 		if !isPresented {
 			isPresented = true
+
+			// Rebuilt rather than left to SwiftUI to replace, so the pane the window opens on is
+			// installed before the window is laid out, measured and ordered front below.
+			installContent(in: window)
+
 			// Shows the Dock icon for as long as the window is open.
 			activationPolicy.windowDidOpen()
-			// Laid out before being measured, so the window opens at the size of the pane it is
-			// about to show rather than at the placeholder size it was created with. Centred
-			// after sizing, so it is centred on the size it opens at.
+
+			// Laid out and measured twice. The first layout measures the pane against the window
+			// the last visit left behind, and comes out short of the height the pane settles at;
+			// sizing after that layout and measuring again gives that height, so the window opens
+			// at its final size and nothing is left to resize once it is on screen. Centred after
+			// sizing, so it is centred on the size it opens at.
+			window.layoutIfNeeded()
+			window.setContentSize(initialContentSize())
 			window.layoutIfNeeded()
 			window.setContentSize(initialContentSize())
 			window.center()
@@ -136,17 +146,6 @@ public final class SettingsWindowController: NSObject, NSToolbarDelegate {
 		// them identical regardless of focus.
 		window.titlebarSeparatorStyle = .none
 
-		let hostingView = ContentSizingHostingView(rootView: makeContent(selection))
-		hostingView.onContentHeightChange = { [weak self] height in
-			self?.resizeToFitContentHeight(height)
-		}
-		contentHostingView = hostingView
-		window.contentView = hostingView
-		selection.onTabChange = { [weak self] _ in
-			self?.updateTabButtons()
-			self?.beginSettlingForPaneChange()
-		}
-
 		closeObserver = NotificationCenter.default.addObserver(
 			forName: NSWindow.willCloseNotification,
 			object: window,
@@ -157,6 +156,30 @@ public final class SettingsWindowController: NSObject, NSToolbarDelegate {
 		}
 
 		self.window = window
+	}
+
+	/// Installs the hosting view showing the current selection.
+	///
+	/// Rebuilt every time the window is opened, rather than kept from the last visit: a hosting
+	/// view left showing another tab's pane only swaps to the pane the window opens on a run loop
+	/// turn later, which shows that other pane for a frame. Built from scratch, the new pane is
+	/// installed by the layout that measures it.
+	private func installContent(in window: NSWindow) {
+		selection.onTabChange = nil
+		selection.tab = .general
+
+		let hostingView = ContentSizingHostingView(rootView: makeContent(selection))
+		hostingView.onContentHeightChange = { [weak self] height in
+			self?.resizeToFitContentHeight(height)
+		}
+
+		contentHostingView = hostingView
+		window.contentView = hostingView
+
+		selection.onTabChange = { [weak self] _ in
+			self?.updateTabButtons()
+			self?.beginSettlingForPaneChange()
+		}
 	}
 
 	private func handleWindowWillClose() {
@@ -265,7 +288,8 @@ public final class SettingsWindowController: NSObject, NSToolbarDelegate {
 	///
 	/// The off-screen probe this replaces measured `fittingSize`, which comes out short for a
 	/// grouped form, so the pane always scrolled a little. The live hosting view can be measured
-	/// instead, as soon as it has been laid out.
+	/// instead, once it has laid its pane out against the size the window is about to take — which
+	/// is why `show()` measures, sizes and measures again.
 	private func initialContentSize() -> NSSize {
 		NSSize(
 			width: SettingsPaneMetrics.width,
