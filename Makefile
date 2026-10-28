@@ -49,7 +49,7 @@ OP_ITEM_REF ?= CalendarShouter-Signing
 SIGN_OPTIONS ?=
 
 SVU_PKG := 'nixpkgs\#svu'
-SVU_OUT := $(shell nix run --inputs-from . $(SVU_PKG) -- --tag.prefix="" current)
+SVU_OUT := $(shell nix run $(SVU_PKG) -- --tag.prefix="" current)
 SEMVER ?= $(if $(SVU_OUT),$(SVU_OUT),0.0.0)
 BUILD_NUMBER ?= $(shell git rev-list --count HEAD 2>/dev/null || echo 1)
 
@@ -93,7 +93,7 @@ HELPER_NAME := $(APP_NAME)KeychainHelper
 HELPER_BIN := $(BUILD_DIR)/$(HELPER_NAME)
 HELPER_TRACKED := Tools/KeychainHelper/$(HELPER_NAME)
 HELPER_STORE_LINK := $(BUILD_DIR)/helper-store
-HELPER_ATTR := .\#keychain-helper
+HELPER_ATTR := ./Tools/KeychainHelper\#keychain-helper
 
 # The helper's identity, as macOS sees it: its keychain items are pinned to this
 # hash, so changing it makes every installed copy ask for permission again. That

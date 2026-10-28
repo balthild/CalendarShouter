@@ -5,7 +5,7 @@
   description = "Builds the CalendarShouter keychain helper with a pinned toolchain.";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
     flake-parts.url = "github:hercules-ci/flake-parts";
     flake-parts.inputs.nixpkgs-lib.follows = "nixpkgs";
   };
@@ -15,16 +15,16 @@
       # macOS only: the helper links against the Security framework.
       systems = [ "aarch64-darwin" ];
 
-      perSystem = { pkgs, config, ... }: {
+      perSystem = { pkgs, lib, config, ... }: {
         packages.keychain-helper = pkgs.stdenv.mkDerivation {
           pname = "CalendarShouterKeychainHelper";
           version = "1.0";
 
           # Only the source: the built helper is committed alongside it, and
           # letting that in would make the derivation depend on its own output.
-          src = pkgs.lib.fileset.toSource {
-            root = ./Tools/KeychainHelper;
-            fileset = ./Tools/KeychainHelper/main.c;
+          src = lib.fileset.toSource {
+            root = ./.;
+            fileset = ./main.c;
           };
 
           dontConfigure = true;

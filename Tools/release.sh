@@ -16,7 +16,7 @@ if [ -n "$(git status --porcelain)" ]; then
 	exit 1
 fi
 
-semver="$(nix run --inputs-from . nixpkgs#svu -- --tag.prefix="" "$kind")"
+semver="$(nix run nixpkgs#svu -- --tag.prefix="" "$kind")"
 version="v$semver"
 
 echo "Releasing $version"
