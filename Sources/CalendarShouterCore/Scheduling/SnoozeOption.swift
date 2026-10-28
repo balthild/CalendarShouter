@@ -5,6 +5,8 @@ public enum SnoozeOption: Int, CaseIterable, Sendable, Identifiable {
 	case tenMinutes = 10
 	case fifteenMinutes = 15
 	case thirtyMinutes = 30
+	case oneHour = 60
+	case twoHours = 120
 
 	public var id: Int { rawValue }
 
@@ -19,6 +21,8 @@ public enum SnoozeOption: Int, CaseIterable, Sendable, Identifiable {
 		case .tenMinutes: .tenMinutes
 		case .fifteenMinutes: .fifteenMinutes
 		case .thirtyMinutes: .thirtyMinutes
+		case .oneHour: .oneHour
+		case .twoHours: .twoHours
 		}
 	}
 }

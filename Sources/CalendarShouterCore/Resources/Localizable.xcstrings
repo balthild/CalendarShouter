@@ -761,6 +761,13 @@
 				"zh-Hans": { "stringUnit": { "state": "translated", "value": "备注" } }
 			}
 		},
+		"oneHour": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": { "stringUnit": { "state": "translated", "value": "1 hour" } },
+				"zh-Hans": { "stringUnit": { "state": "translated", "value": "1 小时" } }
+			}
+		},
 		"openLoginItemsSettings": {
 			"extractionState": "manual",
 			"localizations": {
@@ -910,6 +917,13 @@
 			"localizations": {
 				"en": { "stringUnit": { "state": "translated", "value": "30 minutes" } },
 				"zh-Hans": { "stringUnit": { "state": "translated", "value": "30 分钟" } }
+			}
+		},
+		"twoHours": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": { "stringUnit": { "state": "translated", "value": "2 hours" } },
+				"zh-Hans": { "stringUnit": { "state": "translated", "value": "2 小时" } }
 			}
 		},
 		"untitledEvent": {

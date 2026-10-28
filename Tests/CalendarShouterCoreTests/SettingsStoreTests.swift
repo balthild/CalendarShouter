@@ -148,7 +148,7 @@ struct SoundCatalogTests {
 struct SnoozeOptionTests {
 	@Test("Offers the documented delays")
 	func offersDocumentedDelays() {
-		#expect(SnoozeOption.allCases.map(\.minutes) == [5, 10, 15, 30])
+		#expect(SnoozeOption.allCases.map(\.minutes) == [5, 10, 15, 30, 60, 120])
 	}
 
 	@Test("Converts minutes to a time interval")
