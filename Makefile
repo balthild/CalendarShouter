@@ -45,7 +45,7 @@ CONFIG ?= debug
 # SIGN_OPTIONS='--options runtime --timestamp' for a Developer ID build.
 SIGN_IDENTITY ?= auto
 SIGNING_SOURCE ?= op
-OP_ITEM_REF ?= CalendarShouter Signing
+OP_ITEM_REF ?= CalendarShouter-Signing
 SIGN_OPTIONS ?=
 
 SVU_PKG := 'nixpkgs\#svu'

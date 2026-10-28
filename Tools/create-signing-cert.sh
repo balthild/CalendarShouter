@@ -47,7 +47,7 @@ printf '%s\n' "  password:  $password"
 printf '%s\n' "  SHA-1:     $fingerprint"
 printf '\n'
 printf '%s\n' "Next:"
-printf '%s\n' "  1. In 1Password, add an item named \"CalendarShouter Signing\"."
+printf '%s\n' "  1. In 1Password, add an item named \"CalendarShouter-Signing\"."
 printf '%s\n' "  2. Add a text field labelled \"p12\" and paste the certificate into it:"
 printf '%s\n' "       openssl base64 -A -in '$p12' | pbcopy"
 printf '%s\n' "  3. Set the item's own password field to the password above."
