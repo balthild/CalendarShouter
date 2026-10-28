@@ -75,6 +75,23 @@ enum TranslucentPanel {
 			context.duration = 0.15
 			panel.animator().alphaValue = 1
 		}
+		clearInitialFocus(in: panel)
+	}
+
+	/// Leaves the panel, rather than its first control, as the first responder once it appears.
+	///
+	/// SwiftUI hands first responder to the content's first control as the panel is shown, which
+	/// draws that control's focus ring before the user has touched the keyboard. AppKit itself
+	/// reserves the ring for keyboard navigation, so the ring comes back on the first Tab — this
+	/// only removes the ring nothing asked for. Cleared on the next run loop turn, since SwiftUI
+	/// sets the responder after the panel is ordered front.
+	private static func clearInitialFocus(in panel: NSPanel) {
+		DispatchQueue.main.async { [weak panel] in
+			MainActor.assumeIsolated {
+				guard let panel, panel.isVisible else { return }
+				_ = panel.makeFirstResponder(nil)
+			}
+		}
 	}
 
 	/// A resizable rounded-rectangle mask, used to round the material itself.
