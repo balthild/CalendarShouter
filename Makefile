@@ -104,7 +104,13 @@ HELPER_CDHASH := 559514fceee8a1c783543c1bd5b7a4c42e4b2611
 
 .DEFAULT_GOAL := help
 
-.PHONY: help format lint localize build test icon build-keychain-helper adopt-keychain-helper app sign signing-cert package notarize run demo demo-missed demo-reminder dev reset-permissions reset-data clean release
+.PHONY: help format lint
+.PHONY: localize build test icon
+.PHONY: build-keychain-helper adopt-keychain-helper
+.PHONY: app sign signing-cert package notarize
+.PHONY: rerun dev demo demo-missed demo-reminder demo-upcoming
+.PHONY: reset-permissions reset-data
+.PHONY: clean release
 
 help: ## Show this help.
 	@printf '%s\n' "CalendarShouter $(SEMVER) — available targets:"
@@ -210,28 +216,20 @@ signing-cert: ## Create the self-signed certificate the app is signed with.
 	Tools/create-signing-cert.sh "$(BUILD_DIR)/signing"
 
 package: sign ## Produce a distributable disk image in .build/dist.
-	@rm -rf "$(DIST_DIR)"
-	@mkdir -p "$(DIST_DIR)/dmg"
+	@mkdir -p "$(DIST_DIR)"
 
 	$(SWIFT) Tools/dmg-background.swift "$(DIST_DIR)/dmg-background.png"
-	ditto "$(APP_BUNDLE)" "$(DIST_DIR)/dmg/$(APP_NAME).app"
 
 	@printf '%s\n' "Creating $(APP_PACKAGE)..."
-	@nix run --inputs-from . nixpkgs#create-dmg -- \
+	@nix run 'github:balthild/mkdmg#mkdmg-bin' -- \
 		--volname '$(APP_NAME)' \
 		--background '$(DIST_DIR)/dmg-background.png' \
-		--window-pos 200 120 \
-		--window-size 600 400 \
-		--icon-size 128 \
-		--icon '$(APP_NAME).app' 150 190 \
+		--window-size 600,400 \
+		--window-position 400,400 \
+		--icon '$(APP_NAME).app':150,190 \
 		--app-drop-link 450 190 \
-		--hide-extension '$(APP_NAME).app' \
-		--filesystem HFS+ \
-		--format UDZO \
-		--hdiutil-quiet \
-		--no-internet-enable \
-		'$(APP_PACKAGE)' \
-		"$(DIST_DIR)/dmg"
+		--output '$(APP_PACKAGE)' \
+		"$(APP_BUNDLE)"
 	@printf '%s\n' "Created $(APP_PACKAGE)"
 
 rerun: APP_ARGS ?= --open-settings
