@@ -57,6 +57,8 @@ BUILD_DIR := .build
 DIST_DIR := $(BUILD_DIR)/dist
 APP_DIR := $(BUILD_DIR)/app
 APP_BUNDLE := $(APP_DIR)/$(APP_NAME).app
+APP_PACKAGE := $(DIST_DIR)/$(APP_NAME)-v$(SEMVER).dmg
+
 BIN_DIR := $(BUILD_DIR)/$(CONFIG)
 RESOURCE_BUNDLE := $(BIN_DIR)/$(APP_NAME)_$(CORE_TARGET).bundle
 
@@ -207,10 +209,30 @@ sign: app ## Codesign the app bundle (see SIGN_IDENTITY).
 signing-cert: ## Create the self-signed certificate the app is signed with.
 	Tools/create-signing-cert.sh "$(BUILD_DIR)/signing"
 
-package: sign ## Produce a distributable zip in .build/dist.
-	@mkdir -p "$(DIST_DIR)"
-	ditto -c -k --keepParent "$(APP_BUNDLE)" "$(DIST_DIR)/$(APP_NAME)-v$(SEMVER).zip"
-	@printf '%s\n' "Created $(DIST_DIR)/$(APP_NAME)-v$(SEMVER).zip"
+package: sign ## Produce a distributable disk image in .build/dist.
+	@rm -rf "$(DIST_DIR)"
+	@mkdir -p "$(DIST_DIR)/dmg"
+
+	$(SWIFT) Tools/dmg-background.swift "$(DIST_DIR)/dmg-background.png"
+	ditto "$(APP_BUNDLE)" "$(DIST_DIR)/dmg/$(APP_NAME).app"
+
+	@printf '%s\n' "Creating $(APP_PACKAGE)..."
+	@nix run --inputs-from . nixpkgs#create-dmg -- \
+		--volname '$(APP_NAME)' \
+		--background '$(DIST_DIR)/dmg-background.png' \
+		--window-pos 200 120 \
+		--window-size 600 400 \
+		--icon-size 128 \
+		--icon '$(APP_NAME).app' 150 190 \
+		--app-drop-link 450 190 \
+		--hide-extension '$(APP_NAME).app' \
+		--filesystem HFS+ \
+		--format UDZO \
+		--hdiutil-quiet \
+		--no-internet-enable \
+		'$(APP_PACKAGE)' \
+		"$(DIST_DIR)/dmg"
+	@printf '%s\n' "Created $(APP_PACKAGE)"
 
 rerun: APP_ARGS ?= --open-settings
 rerun: sign ## Build, bundle, and relaunch the app with arguments.
