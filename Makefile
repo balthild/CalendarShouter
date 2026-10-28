@@ -227,7 +227,7 @@ package: sign ## Produce a distributable disk image in .build/dist.
 		--window-size 600,400 \
 		--window-position 400,400 \
 		--icon '$(APP_NAME).app':150,190 \
-		--app-drop-link 450 190 \
+		--app-drop-link 450,190 \
 		--output '$(APP_PACKAGE)' \
 		"$(APP_BUNDLE)"
 	@printf '%s\n' "Created $(APP_PACKAGE)"
