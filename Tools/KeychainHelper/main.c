@@ -18,8 +18,8 @@
 //   * the app passes its own audit token (argv), which the kernel resolves to
 //     the real process — a token cannot be forged, and because the check below
 //     also binds it to the actual caller, it cannot be forwarded either;
-//   * the token's code signature must carry the same certificate this helper is
-//     signed with, so only this app can drive it.
+//   * the caller's code signature must carry the same certificate this helper
+//     is signed with, so only this app can drive it.
 //
 // Secrets never touch argv (visible in `ps`): a value to store arrives on
 // stdin, and a value read is written to stdout.
