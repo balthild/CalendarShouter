@@ -24,8 +24,11 @@ public final class AppCoordinator {
 
 	private lazy var statusItemController = StatusItemController(
 		showSettings: { [weak self] in self?.showSettings() },
+		showUpcoming: { [weak self] in self?.showUpcomingReminders() },
 		quit: { NSApp.terminate(nil) }
 	)
+
+	private lazy var upcomingWindowController = UpcomingRemindersWindowController()
 
 	private lazy var reminderWindowController: ReminderWindowController = {
 		let controller = ReminderWindowController()
@@ -116,6 +119,11 @@ public final class AppCoordinator {
 		canvasService.refresh()
 		loginItemController.refresh()
 		settingsWindowController.show()
+	}
+
+	/// Shows the reminders that are due soonest.
+	public func showUpcomingReminders() {
+		presentUpcoming(scheduler.upcomingFires)
 	}
 
 	/// Presents a synthetic calendar event reminder.
@@ -243,6 +251,88 @@ public final class AppCoordinator {
 		}
 	}
 
+	/// Presents a synthetic list of upcoming reminders.
+	///
+	/// Used by the `--demo-upcoming` launch argument so the list panel can be inspected with
+	/// every supported reminder source, and with more reminders than the panel shows.
+	public func presentDemoUpcomingReminders(after delay: TimeInterval = 1) {
+		let fires = Self.makeDemoUpcomingFires(now: Date())
+
+		Task { @MainActor [weak self] in
+			try? await Task.sleep(for: .seconds(delay))
+			self?.presentUpcoming(fires)
+		}
+	}
+
+	/// A synthetic upcoming list covering calendar events, Reminders-app items and Canvas
+	/// assignments, with more entries than the panel lists.
+	private static func makeDemoUpcomingFires(now: Date) -> [ReminderFire] {
+		let calendar = CalendarInfo(
+			id: "demo-calendar",
+			title: String(localizable: .demoCalendarTitle),
+			color: RGBColor(red: 0.35, green: 0.45, blue: 0.95),
+			account: CalendarAccountRef(id: "demo-account", title: "iCloud", kind: .calDAV)
+		)
+		let reminders = CalendarInfo(
+			id: "demo-reminder-list",
+			title: String(localizable: .demoReminderListTitle),
+			color: CalendarInfo.reminderColor,
+			account: CalendarAccountRef(id: "demo-account", title: "iCloud", kind: .calDAV)
+		)
+		let course = CalendarInfo(
+			id: "demo-course",
+			title: String(localizable: .demoCourseTitle),
+			color: CanvasPalette.courseColor,
+			account: CalendarAccountRef(id: "demo-canvas-account", title: "Canvas", kind: .other)
+		)
+
+		let offsets: [TimeInterval] = [10, 25, 40, 60, 90, 120, 180, 240, 360, 480, 600, 720]
+		return offsets.enumerated().map { index, minutes in
+			let fireDate = now.addingTimeInterval(minutes * 60)
+			let ordinal = index / 3 + 1
+			let event: ReminderEvent
+			switch index % 3 {
+			case 0:
+				event = ReminderEvent(
+					id: "demo-upcoming-event-\(index)",
+					title: "\(String(localizable: .demoEventTitle)) \(ordinal)",
+					startDate: fireDate.addingTimeInterval(600),
+					endDate: fireDate.addingTimeInterval(1800),
+					isAllDay: false,
+					location: String(localizable: .demoEventLocation),
+					notes: nil,
+					calendar: calendar,
+					fireDates: [fireDate]
+				)
+			case 1:
+				event = ReminderEvent(
+					id: "demo-upcoming-reminder-\(index)",
+					title: "\(String(localizable: .demoReminderTitle)) \(ordinal)",
+					startDate: fireDate,
+					endDate: fireDate,
+					isAllDay: false,
+					location: nil,
+					notes: nil,
+					calendar: reminders,
+					fireDates: [fireDate]
+				)
+			default:
+				event = ReminderEvent(
+					id: "demo-upcoming-assignment-\(index)",
+					title: "\(String(localizable: .demoAssignmentTitle)) \(ordinal)",
+					startDate: fireDate.addingTimeInterval(3600),
+					endDate: fireDate.addingTimeInterval(3600),
+					isAllDay: false,
+					location: nil,
+					notes: nil,
+					calendar: course,
+					fireDates: [fireDate]
+				)
+			}
+			return ReminderFire(event: event, fireDate: fireDate, isSnooze: false)
+		}
+	}
+
 	// MARK: - Settings
 
 	/// Reacts to preference changes.
@@ -289,6 +379,13 @@ public final class AppCoordinator {
 		let missedIDs = Set(missed.map(\.id))
 		reminderWindowController.present(fires.filter { !missedIDs.contains($0.id) })
 		reminderWindowController.presentBacklog(missed)
+	}
+
+	/// Shows the upcoming list, truncated to the panel's limit.
+	private func presentUpcoming(_ fires: [ReminderFire]) {
+		upcomingWindowController.present(
+			ReminderPresentation.upcoming(fires, now: Date())
+		)
 	}
 
 	// MARK: - Login item

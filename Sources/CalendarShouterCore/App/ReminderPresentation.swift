@@ -6,6 +6,23 @@ public enum ReminderPresentation {
 	/// single summary panel.
 	public static let backlogThreshold = 3
 
+	/// How many reminders the upcoming list shows at most.
+	public static let upcomingLimit = 10
+
+	/// The reminders still to come, soonest first, capped for the upcoming list.
+	public static func upcoming(
+		_ fires: [ReminderFire],
+		now: Date,
+		limit: Int = upcomingLimit
+	) -> [ReminderFire] {
+		Array(
+			fires
+				.filter { $0.fireDate >= now }
+				.sorted { $0.fireDate < $1.fireDate }
+				.prefix(limit)
+		)
+	}
+
 	/// The reminders that were missed while the app was not watching and whose event
 	/// has already ended.
 	///

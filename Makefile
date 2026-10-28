@@ -246,6 +246,9 @@ demo-missed: sign ## Show a demo missed calendar reminder backlog to inspect the
 demo-reminder: sign ## Show a demo Reminders-app reminder to inspect the panel.
 	open -n "$(APP_BUNDLE)" --args --demo-reminder
 
+demo-upcoming: sign ## Show a demo upcoming-reminders list to inspect the panel.
+	open -n "$(APP_BUNDLE)" --args --demo-upcoming
+
 dev: localize ## Run without bundling. Calendar access and the login item do not work.
 	$(SWIFT) run -c $(CONFIG)
 

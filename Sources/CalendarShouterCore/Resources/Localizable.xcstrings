@@ -435,11 +435,32 @@
 				"zh-Hans": { "stringUnit": { "state": "translated", "value": "重新登录" } }
 			}
 		},
+		"close": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": { "stringUnit": { "state": "translated", "value": "Close" } },
+				"zh-Hans": { "stringUnit": { "state": "translated", "value": "关闭" } }
+			}
+		},
+		"demoAssignmentTitle": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": { "stringUnit": { "state": "translated", "value": "Demo assignment" } },
+				"zh-Hans": { "stringUnit": { "state": "translated", "value": "演示作业" } }
+			}
+		},
 		"demoCalendarTitle": {
 			"extractionState": "manual",
 			"localizations": {
 				"en": { "stringUnit": { "state": "translated", "value": "Demo calendar" } },
 				"zh-Hans": { "stringUnit": { "state": "translated", "value": "演示日历" } }
+			}
+		},
+		"demoCourseTitle": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": { "stringUnit": { "state": "translated", "value": "Demo course" } },
+				"zh-Hans": { "stringUnit": { "state": "translated", "value": "演示课程" } }
 			}
 		},
 		"demoEventLocation": {
@@ -471,6 +492,20 @@
 			"localizations": {
 				"en": { "stringUnit": { "state": "translated", "value": "Demo event" } },
 				"zh-Hans": { "stringUnit": { "state": "translated", "value": "演示事件" } }
+			}
+		},
+		"demoReminderListTitle": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": { "stringUnit": { "state": "translated", "value": "Reminders" } },
+				"zh-Hans": { "stringUnit": { "state": "translated", "value": "提醒事项" } }
+			}
+		},
+		"demoReminderTitle": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": { "stringUnit": { "state": "translated", "value": "Demo reminder" } },
+				"zh-Hans": { "stringUnit": { "state": "translated", "value": "演示提醒事项" } }
 			}
 		},
 		"enableCalendars": {
@@ -668,6 +703,13 @@
 				"zh-Hans": { "stringUnit": { "state": "translated", "value": "撤销" } }
 			}
 		},
+		"menuUpcoming": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": { "stringUnit": { "state": "translated", "value": "Upcoming Reminders…" } },
+				"zh-Hans": { "stringUnit": { "state": "translated", "value": "临近提醒…" } }
+			}
+		},
 		"missedReminders": {
 			"extractionState": "manual",
 			"localizations": {
@@ -694,6 +736,15 @@
 			"localizations": {
 				"en": { "stringUnit": { "state": "translated", "value": "No sound" } },
 				"zh-Hans": { "stringUnit": { "state": "translated", "value": "无声音" } }
+			}
+		},
+		"noUpcomingReminders": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": {
+					"stringUnit": { "state": "translated", "value": "No upcoming reminders" }
+				},
+				"zh-Hans": { "stringUnit": { "state": "translated", "value": "没有临近提醒" } }
 			}
 		},
 		"notNow": {
@@ -866,6 +917,13 @@
 			"localizations": {
 				"en": { "stringUnit": { "state": "translated", "value": "Untitled event" } },
 				"zh-Hans": { "stringUnit": { "state": "translated", "value": "无标题事件" } }
+			}
+		},
+		"upcomingReminders": {
+			"extractionState": "manual",
+			"localizations": {
+				"en": { "stringUnit": { "state": "translated", "value": "Upcoming Reminders" } },
+				"zh-Hans": { "stringUnit": { "state": "translated", "value": "临近提醒" } }
 			}
 		}
 	},

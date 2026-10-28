@@ -5,13 +5,16 @@ import AppKit
 public final class StatusItemController: NSObject {
 	private var statusItem: NSStatusItem?
 	private let showSettings: @MainActor @Sendable () -> Void
+	private let showUpcoming: @MainActor @Sendable () -> Void
 	private let quit: @MainActor @Sendable () -> Void
 
 	public init(
 		showSettings: @escaping @MainActor @Sendable () -> Void,
+		showUpcoming: @escaping @MainActor @Sendable () -> Void,
 		quit: @escaping @MainActor @Sendable () -> Void
 	) {
 		self.showSettings = showSettings
+		self.showUpcoming = showUpcoming
 		self.quit = quit
 		super.init()
 	}
@@ -62,6 +65,14 @@ public final class StatusItemController: NSObject {
 		settingsItem.target = self
 		menu.addItem(settingsItem)
 
+		let upcomingItem = NSMenuItem(
+			title: String(localizable: .menuUpcoming),
+			action: #selector(handleShowUpcoming),
+			keyEquivalent: ""
+		)
+		upcomingItem.target = self
+		menu.addItem(upcomingItem)
+
 		menu.addItem(.separator())
 
 		let quitItem = NSMenuItem(
@@ -77,6 +88,10 @@ public final class StatusItemController: NSObject {
 
 	@objc private func handleShowSettings() {
 		showSettings()
+	}
+
+	@objc private func handleShowUpcoming() {
+		showUpcoming()
 	}
 
 	@objc private func handleQuit() {

@@ -35,6 +35,8 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
 			coordinator.presentDemoCalendarMissedEvents()
 		} else if CommandLine.arguments.contains("--demo-reminder") {
 			coordinator.presentDemoReminder()
+		} else if CommandLine.arguments.contains("--demo-upcoming") {
+			coordinator.presentDemoUpcomingReminders()
 		}
 
 		if CommandLine.arguments.contains("--open-settings") {
@@ -54,6 +56,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
 		let appMenuItem = NSMenuItem()
 		let appMenu = NSMenu()
 		add(to: appMenu, title: .menuSettings, action: #selector(showSettings), key: ",")
+		add(to: appMenu, title: .menuUpcoming, action: #selector(showUpcomingReminders), key: "")
 		appMenu.addItem(.separator())
 		// Quit deliberately carries no key equivalent: this is a background app,
 		// so ⌘Q while the settings window happens to be open would end it by
@@ -122,6 +125,10 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
 
 	@objc private func showSettings() {
 		coordinator?.showSettings()
+	}
+
+	@objc private func showUpcomingReminders() {
+		coordinator?.showUpcomingReminders()
 	}
 
 	public func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
